@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SidStation Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --border:#6C5EB5; --screen:#40318D; --screen2:#3B2D86; --line:#7869C4; --ink:#FFFFFF; --dim:#B3AAEE;
+  --rev:#A99EE8; --rev-ink:#2E2270; --warn:#FFB38A; --track:#7869C4;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --border:#17123A; --screen:#251D5E; --screen2:#211A55; --line:#4F439E; --ink:#ECE9FF; --dim:#A59CE0; --rev:#8E82D6; --rev-ink:#1B1545; --track:#4F439E; }
+}
+:root[data-theme="dark"]{ --border:#17123A; --screen:#251D5E; --screen2:#211A55; --line:#4F439E; --ink:#ECE9FF; --dim:#A59CE0; --rev:#8E82D6; --rev-ink:#1B1545; --track:#4F439E; }
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+.scroll *,.toast{border-radius:0!important}
+body{margin:0;color:var(--ink);font:21px/1.05 VT323,"Courier New",monospace;-webkit-font-smoothing:none}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
+.px{font-family:"Press Start 2P",VT323,monospace;text-transform:uppercase}
+.wrap{margin:0;padding:0}
+.screen{background:var(--screen);padding:14px;border:0}
+
+/* top block */
+.unit{background:var(--screen);border:2px solid var(--line);padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 20px;align-items:center}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font:16px/1.2 "Press Start 2P",VT323,monospace;text-transform:uppercase;margin:0}
+.brand span{color:var(--dim);text-transform:uppercase}
+.ports{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;text-transform:uppercase}
+.ports select{max-width:200px}
+.leds{display:flex;gap:12px;color:var(--dim);align-items:center;text-transform:uppercase}
+.leds i{display:inline-block;width:11px;height:11px;border-radius:50%!important;border:2px solid var(--dim);margin-right:5px;vertical-align:-1px}
+.leds i.on{background:var(--ink);border-color:var(--ink)}
+.lcdrow{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;border-top:2px solid var(--line);padding-top:12px}
+.lcd{background:var(--screen2);color:var(--ink);font:30px/1 VT323,monospace;padding:10px 14px 8px;border:2px solid var(--line);white-space:pre;min-width:16ch;letter-spacing:.06em;text-transform:uppercase}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.namebox{display:flex;align-items:center;gap:8px;text-transform:uppercase}
+.namebox input{width:11ch;font:26px/1 VT323,monospace;padding:2px 6px;border:0;border-bottom:2px solid var(--line);background:transparent;text-transform:uppercase;letter-spacing:.06em}
+
+.btn{border:2px solid var(--line);background:transparent;padding:3px 10px;cursor:pointer;min-height:34px;text-transform:uppercase}
+.btn:hover,.btn:active{background:var(--rev);color:var(--rev-ink);border-color:var(--rev)}
+.btn.primary{background:var(--ink);color:var(--screen);border-color:var(--ink)}
+.btn.small{min-height:28px;padding:0 7px}
+.btn.warn{color:var(--warn);border-color:var(--warn)}
+.btn.warn:hover{background:var(--warn);color:var(--screen)}
+.btn:disabled{opacity:.4;cursor:not-allowed;background:transparent;color:inherit}
+select{border:0;border-bottom:2px dotted var(--line);background:var(--screen);color:var(--dim);padding:0 2px;min-height:28px;text-transform:uppercase;cursor:pointer}
+select:hover{color:var(--ink)}
+option{background:var(--screen);color:var(--ink)}
+
+/* tabs */
+.panel{background:var(--screen);border:2px solid var(--line);border-top:0;padding:14px}
+.panel[hidden]{display:none}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:0;border:2px solid var(--line)}
+.mod{border:2px solid var(--line);margin:-1px;padding:10px 12px 12px;background:transparent}
+.mod > header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.mod > header h3{font:13px/1.4 "Press Start 2P",VT323,monospace;text-transform:uppercase;margin:0;margin-right:auto}
+.grp{margin-top:10px}
+.grp h4{margin:0 0 2px;font-weight:400;color:var(--ink);text-transform:uppercase;border-bottom:2px solid var(--line);display:inline-block;padding-right:8px}
+.row{display:grid;grid-template-columns:minmax(88px,38%) minmax(0,1fr) 78px;align-items:center;gap:8px;min-height:30px}
+.row .lbl{text-transform:uppercase;color:var(--ink)}
+.row output{font-variant-numeric:tabular-nums;text-align:right;color:var(--dim);text-transform:uppercase}
+.row.sel{grid-template-columns:minmax(88px,38%) minmax(0,1fr)}
+.togs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tog{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;padding:2px 6px 2px 2px;cursor:pointer;min-height:28px;text-transform:uppercase;color:var(--dim)}
+.tog .led{width:12px;height:12px;border-radius:50%!important;border:2px solid var(--dim)}
+.tog:hover{color:var(--ink)}
+.tog.on{color:var(--ink)}
+.tog.on .led{background:var(--ink);border-color:var(--ink)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:repeating-linear-gradient(90deg,var(--track) 0 4px,transparent 4px 8px)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:16px;background:var(--ink);margin-top:-6px;border:0}
+input[type=range]::-moz-range-track{height:4px;background:repeating-linear-gradient(90deg,var(--track) 0 4px,transparent 4px 8px)}
+input[type=range]::-moz-range-thumb{width:12px;height:16px;background:var(--ink);border:0;border-radius:0}
+svg.env{width:100%;height:46px;display:block;margin-top:4px}
+svg.env path{fill:none;stroke:var(--ink);stroke-width:2;shape-rendering:crispEdges}
+svg.env line{stroke:var(--line);stroke-dasharray:4 4}
+.note{color:var(--dim);max-width:78ch;line-height:1.15}
+.note b{color:var(--ink);font-weight:400;text-transform:uppercase}
+
+/* tables */
+.steps{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+.step{display:grid;grid-template-columns:28px 64px 30px 30px 46px 52px 1fr 28px;gap:4px;align-items:center;text-transform:uppercase}
+.step .ix{color:var(--dim);font-variant-numeric:tabular-nums}
+.step select,.step input{min-height:26px;padding:0 2px;width:100%}
+.step input{border:0;border-bottom:2px dotted var(--line);background:transparent;color:var(--ink)}
+.mini{border:2px solid var(--line);background:transparent;min-height:26px;cursor:pointer;padding:0;color:var(--dim)}
+.mini.on{background:var(--ink);color:var(--screen);border-color:var(--ink)}
+.mini:hover{color:var(--ink)}
+.step .nn{color:var(--dim)}
+
+/* bank */
+.bank{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0;border:2px solid var(--line)}
+.slot{text-align:left;border:1px solid var(--line);margin:-1px 0 0 -1px;background:transparent;padding:4px 8px;cursor:pointer;font:21px/1.1 VT323,monospace;min-height:34px;overflow:hidden;white-space:nowrap;text-transform:uppercase}
+.slot small{color:var(--dim);margin-right:8px;font-size:inherit}
+.slot.empty{color:var(--line)}
+.slot:hover{background:var(--screen2)}
+.slot.sel{background:var(--ink);color:var(--screen)}
+.slot.sel small{color:var(--screen)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+pre.mon{max-height:240px;overflow:auto;background:var(--screen2);border:2px solid var(--line);padding:8px;font:19px/1.05 VT323,monospace;margin:0;color:var(--dim)}
+
+/* performance strip */
+.perf{margin-top:14px;background:var(--screen);border:2px solid var(--line);padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:stretch}
+.wheels{display:flex;gap:10px}
+.wheel{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--dim);text-transform:uppercase}
+.wheel input{writing-mode:vertical-lr;direction:rtl;width:26px;height:110px}
+.wheel input::-webkit-slider-runnable-track{width:4px;height:auto;background:repeating-linear-gradient(0deg,var(--track) 0 4px,transparent 4px 8px)}
+.wheel input::-webkit-slider-thumb{width:18px;height:12px;margin-top:0;margin-left:-7px}
+.kbwrap{display:flex;flex-direction:column;gap:6px;min-width:0}
+.kbtop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--dim);text-transform:uppercase}
+.kbd{position:relative;height:110px;display:flex;user-select:none;touch-action:none}
+.kw{flex:1;border:2px solid var(--screen);background:var(--rev);position:relative}
+.kw span{position:absolute;bottom:2px;left:0;right:0;text-align:center;color:var(--rev-ink)}
+.kb{position:absolute;top:0;height:62%;background:var(--screen2);border:2px solid var(--screen);z-index:2}
+.kw.down,.kb.down{background:var(--ink)}
+.knobs{display:grid;grid-template-columns:repeat(4,minmax(64px,1fr));gap:6px 12px;align-content:center}
+.knobs label{display:flex;flex-direction:column;color:var(--dim);gap:2px;text-transform:uppercase}
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;color:var(--ink);text-transform:uppercase;font-size:22px}
+.foot .cur{display:inline-block;width:.6em;height:1em;background:var(--ink);vertical-align:-2px;margin-left:4px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--screen);padding:6px 14px;opacity:0;pointer-events:none;transition:opacity .15s;max-width:90vw;z-index:20;text-transform:uppercase}
+.toast.show{opacity:1}
+@media (max-width:820px){
+  .unit{grid-template-columns:1fr}
+  .ports{justify-content:flex-start}
+  .lcdrow{grid-template-columns:1fr}
+  .perf{grid-template-columns:1fr}
+  .brand h1{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ===== CRT monitor frame ===== */
+:root{--plastic:#c4c0b6;--plastic-hi:#dedad1;--plastic-lo:#9e9a90;--plastic-ink:#5c5850;--room:#0c0c0e;--chin:clamp(54px,9vh,92px);--bez:clamp(12px,2.6vw,40px)}
+html,body{height:100%}
+body{background:radial-gradient(120% 70% at 50% 108%,#24232a 0,var(--room) 60%);overflow:hidden;display:flex;align-items:center;justify-content:center;padding:clamp(6px,1.4vw,18px)}
+.monitor{width:min(100%,1500px);height:100%;display:flex;flex-direction:column;filter:drop-shadow(0 30px 40px rgba(0,0,0,.6))}
+.case{flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--plastic-hi),var(--plastic) 30%,var(--plastic-lo));border-radius:14px 14px 4px 4px;padding:var(--bez) var(--bez) 0;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(0,0,0,.18),inset 2px 0 0 rgba(255,255,255,.25),inset -2px 0 0 rgba(0,0,0,.12)}
+.tube{flex:1;min-height:0;background:linear-gradient(180deg,#1b1a1d,#2c2b2f 55%,#3a393c);border-radius:8px;padding:clamp(8px,1.6vw,22px);box-shadow:inset 0 6px 14px rgba(0,0,0,.8),inset 0 -2px 3px rgba(255,255,255,.12),0 1px 0 rgba(255,255,255,.5)}
+.glass{position:relative;height:100%;border-radius:2.2% / 3.4%;overflow:hidden;background:var(--border);box-shadow:0 0 0 2px #0a0a0b,0 0 28px rgba(140,125,230,.18)}
+.scroll{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent;text-shadow:0 0 5px rgba(205,195,255,.35)}
+.scroll::-webkit-scrollbar{width:10px}.scroll::-webkit-scrollbar-thumb{background:var(--line)}.scroll::-webkit-scrollbar-track{background:transparent}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5;border-radius:inherit;
+  background:
+    radial-gradient(75% 55% at 28% 18%,rgba(255,255,255,.07),transparent 60%),
+    repeating-linear-gradient(180deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
+    radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.42) 100%);
+  box-shadow:inset 0 0 70px rgba(0,0,0,.55),inset 0 0 12px rgba(0,0,0,.6)}
+html.nofx .fx{background:radial-gradient(ellipse at center,transparent 70%,rgba(0,0,0,.3) 100%);box-shadow:inset 0 0 30px rgba(0,0,0,.4)}
+html.nofx .scroll{text-shadow:none}
+.chin{height:var(--chin);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:0 var(--bez);color:var(--plastic-ink);font:600 10px/1.1 Arial,Helvetica,sans-serif;letter-spacing:.06em}
+.vents{height:58%;background:repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,transparent 2px 7px);opacity:.55;border-radius:2px}
+.badge{display:flex;align-items:center;gap:10px;background:linear-gradient(#b5b1a7,#a8a49a);padding:6px 10px;border-radius:3px;box-shadow:inset 0 1px 2px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.5)}
+.stripes{display:flex;flex-direction:column;gap:1px;width:34px}
+.stripes i{height:3px;display:block}
+.stripes i:nth-child(1){background:#d43b2f}.stripes i:nth-child(2){background:#e9862a}.stripes i:nth-child(3){background:#e8cd36}.stripes i:nth-child(4){background:#4fa64a}.stripes i:nth-child(5){background:#2f6fb7}
+.ind{width:26px;height:16px;background:#151517;border-radius:2px;display:grid;place-items:center;box-shadow:inset 0 1px 3px #000}
+.ind b{width:6px;height:6px;border-radius:50%;background:#1d3a20;transition:background .05s}
+.ind b.on{background:#5cff6c;box-shadow:0 0 6px #5cff6c}
+.ind b.act{background:#d6ffd9;box-shadow:0 0 9px #8dff98}
+.right{display:flex;align-items:center;justify-content:flex-end;gap:14px}
+.plate{border-top:1px solid var(--plastic-ink);border-bottom:1px solid var(--plastic-ink);padding:3px 0;text-transform:uppercase;white-space:nowrap}
+.pwr{display:flex;flex-direction:column;align-items:center;gap:3px;text-transform:uppercase;font-size:8px}
+.pwr button{width:24px;height:16px;border:0;border-radius:2px;background:linear-gradient(#e7e3da,#b9b5ab);box-shadow:0 2px 0 #807c73,0 3px 3px rgba(0,0,0,.35);cursor:pointer}
+.pwr button:active{transform:translateY(2px);box-shadow:0 0 0 #807c73}
+.jacks{display:flex;gap:7px}
+.jack{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#111 0 28%,#c9c9c9 30% 46%,var(--j) 48% 100%);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.foot2{height:10px;margin:0 6%;background:linear-gradient(#2b2a2e,#121214);border-radius:0 0 6px 6px;flex:none}
+/* power off */
+.glass.off .scroll,.glass.off .fx{visibility:hidden}
+.glass.off{background:#0d0e10}
+.glass.boot .scroll{animation:crtOn .45s ease-out}
+.glass.shut::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#fff;box-shadow:0 0 18px 6px rgba(200,190,255,.8);animation:crtOff .35s ease-in forwards;z-index:6}
+@keyframes crtOn{0%{transform:scale(1,.004);filter:brightness(4)}55%{transform:scale(1,1.02);filter:brightness(1.6)}100%{transform:none;filter:none}}
+@keyframes crtOff{0%{transform:scaleX(1);opacity:1}80%{transform:scaleX(.02);opacity:1}100%{transform:scaleX(0);opacity:0}}
+.toast{bottom:calc(var(--chin) + 40px)}
+@media (max-width:820px){
+  .badge .plate,.plate,.vents{display:none}
+  .chin{grid-template-columns:auto 1fr auto}
+  .tube{border-radius:6px}
+}
+@media (prefers-reduced-motion:reduce){.glass.boot .scroll,.glass.shut::after{animation:none}}
+
+/* channel preset buttons */
+.chin{grid-template-columns:auto 1fr auto}
+.badge{justify-self:center}
+nav.tabs{display:flex;gap:6px;align-items:flex-end;padding:4px 8px 3px;background:linear-gradient(#a9a59b,#b6b2a8);border-radius:3px;box-shadow:inset 0 2px 3px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.5)}
+nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;padding:0;cursor:pointer;color:var(--plastic-ink);font:600 8px/1 Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;min-width:34px}
+.ch-led{width:5px;height:5px;border-radius:50%;background:#4a1f1a;box-shadow:inset 0 1px 1px rgba(0,0,0,.6)}
+.ch-key{display:grid;place-items:center;width:28px;height:22px;border-radius:2px;background:linear-gradient(#ece8df,#bdb9af);box-shadow:0 3px 0 #8a867d,0 4px 4px rgba(0,0,0,.35);font:700 11px/1 Arial,Helvetica,sans-serif;color:#4a463f;transition:transform .06s,box-shadow .06s}
+nav.tabs button:hover .ch-key{background:linear-gradient(#f4f1ea,#c6c2b8)}
+nav.tabs button:active .ch-key,nav.tabs button[aria-selected="true"] .ch-key{transform:translateY(3px);box-shadow:0 0 0 #8a867d,0 1px 1px rgba(0,0,0,.35);background:linear-gradient(#d3cfc5,#b3afa5)}
+nav.tabs button[aria-selected="true"] .ch-led{background:#ff4a32;box-shadow:0 0 5px #ff5a40}
+nav.tabs button[aria-selected="true"] .ch-lbl{color:#2c2924}
+nav.tabs button:focus-visible{outline:2px solid #2c2924;outline-offset:2px}
+.osd{position:absolute;bottom:5%;left:4%;background:rgba(10,8,30,.55);padding:4px 10px 2px;z-index:4;font:28px/1 VT323,monospace;color:#7dff8a;text-shadow:0 0 6px rgba(125,255,138,.7);text-transform:uppercase;letter-spacing:.08em;opacity:0;transition:opacity .25s;pointer-events:none}
+.osd.show{opacity:1;transition:none}
+@media (max-width:820px){
+  :root{--chin:96px}
+  .chin{grid-template-columns:1fr auto;grid-template-rows:auto auto;row-gap:6px;align-content:center}
+  nav.tabs{grid-column:1/-1;justify-content:space-between;overflow-x:auto}
+  nav.tabs button{min-width:30px}
+  .ch-key{width:24px;height:20px}
+  .badge{justify-self:start}
+}
+
+/* ===== loading overlay ===== */
+.load{position:absolute;inset:0;z-index:4;display:grid;place-items:center;cursor:progress}
+.load[hidden]{display:none}
+.load canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.loadbox{position:relative;background:#000;color:#fff;font:30px/1.1 VT323,monospace;text-transform:uppercase;padding:14px 28px 12px;text-align:center;min-width:min(440px,80%);max-width:86%;letter-spacing:.06em;text-shadow:0 0 6px rgba(255,255,255,.55);cursor:default}
+#loadMsg::after{content:"";display:inline-block;width:.5em;height:.85em;background:#fff;margin-left:6px;vertical-align:-1px;animation:blink .6s steps(1) infinite}
+#loadSub{color:#9a9a9a;font-size:20px;margin-top:4px;min-height:1em;text-shadow:none}
+.loadx{margin-top:10px;background:#000;color:#fff;border:2px solid #fff;font:20px/1 VT323,monospace;padding:3px 12px 1px;cursor:pointer;text-transform:uppercase}
+.loadx:hover{background:#fff;color:#000}
+.glass.off .load{visibility:hidden}
+
+/* ===== compact layout ===== */
+#lfoCols{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.envline{display:flex;align-items:center;gap:8px;margin-top:2px}
+.envline svg.env{flex:1;height:20px;margin:0}
+body{font-size:18px;line-height:1}
+.unit{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:6px 10px;border-width:0 0 2px}
+.brand{flex-direction:column;gap:0}
+.brand h1{font-size:11px}
+.brand span{display:none}
+.lcdrow{display:contents}
+.lcd{font-size:21px;padding:4px 9px 2px;min-width:16ch}
+.actions{flex:1 1 380px;gap:5px;min-width:0}
+.ports{gap:6px;margin-left:auto}
+.namebox input{font-size:21px;width:11.5ch}
+.btn{min-height:24px;padding:1px 8px}
+.btn.small{min-height:20px;padding:0 6px}
+select{min-height:20px}
+.panel{padding:6px 8px;border-width:0}
+.cols{border-width:2px}
+.mod{padding:4px 8px 6px}
+.mod > header{margin-bottom:0;gap:5px}
+.mod > header h3{font-size:10px}
+.grp{margin-top:4px}
+.grp h4{margin-bottom:1px}
+.row{min-height:20px;gap:6px;grid-template-columns:minmax(64px,40%) minmax(0,1fr) 62px}
+.row.sel{grid-template-columns:minmax(64px,40%) minmax(0,1fr)}
+input[type=range]{height:16px}
+input[type=range]::-webkit-slider-thumb{height:13px;width:10px;margin-top:-4.5px}
+input[type=range]::-moz-range-thumb{height:13px;width:10px}
+.togs{gap:1px 8px;margin-top:1px}
+.tog{min-height:19px;padding:0 3px 0 0;gap:5px}
+.tog .led{width:10px;height:10px}
+svg.env{height:26px;margin-top:2px}
+.note{line-height:1.05;margin:4px 0}
+.steps{gap:1px;margin-top:4px}
+.step{grid-template-columns:24px 60px 26px 26px 42px 46px 1fr 24px}
+.step select,.step input,.mini{min-height:21px}
+.bar{gap:5px;margin-bottom:6px}
+.slot{min-height:24px;padding:2px 7px;font-size:19px}
+pre.mon{max-height:150px;font-size:17px}
+#oscCols{display:flex;flex-direction:column;gap:0;border:0}
+.oscrow{display:grid;grid-template-columns:92px repeat(4,minmax(0,1fr));gap:0 14px;margin:0 0 -2px}
+.oschead{display:flex;flex-direction:column;align-items:flex-start;gap:5px;border-right:2px solid var(--line);padding-right:8px}
+.oschead h3{font:10px/1.4 "Press Start 2P",VT323,monospace;text-transform:uppercase;margin:2px 0 0}
+.oschead .btn{width:100%}
+.oc > .grp:first-child{margin-top:0}
+.oscrow{padding-top:3px;padding-bottom:4px}
+.perf{margin-top:0;padding:5px 10px 6px;gap:12px;border-width:2px 0 0}
+.wheel input{height:60px}
+.kbd{height:56px}
+.kbtop{gap:6px}
+.kw span{font-size:15px}
+.knobs{gap:0 10px}
+.knobs label{gap:0}
+.foot{margin:0;padding:4px 10px;font-size:18px;border-top:2px solid var(--line)}
+@media (min-width:821px){
+  .wrap{display:flex;flex-direction:column;height:100%}
+  .scroll{overflow:hidden}
+  .wrap > .panel:not([hidden]){flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .unit,.perf{flex:none}
+  .foot{display:none}
+}
+@media (min-width:821px) and (max-height:1060px){
+  .row{min-height:18px}
+  .tog{min-height:17px}
+  .grp{margin-top:2px}
+  .oscrow{padding-top:2px;padding-bottom:2px}
+}
+@media (max-width:820px){
+  .oscrow{grid-template-columns:1fr;gap:4px}
+  .oschead{flex-direction:row;flex-wrap:wrap;align-items:center;border-right:0;border-bottom:2px solid var(--line);padding:0 0 4px}
+  .oschead .btn{width:auto}
+}
+
+/* ===== stretch oscillator and LFO grids to fill tall screens ===== */
+@media (min-width:821px){
+  .wrap > .panel:not([hidden]){display:flex;flex-direction:column}
+  #oscCols,#lfoCols{flex:1 0 auto}
+  .oscrow{flex:1 0 auto}
+  .oscrow .oc,#lfoCols .mod{display:flex;flex-direction:column}
+  .oscrow .oc > .grp,#lfoCols .mod > .grp{flex:1 0 auto;display:flex;flex-direction:column;justify-content:space-evenly}
+  .oscrow .oc > .envline{flex:none}
+  .oscrow .oschead{justify-content:flex-start}
+  .oscrow .oc > .grp > h4,#lfoCols .mod > .grp > h4{align-self:flex-start}
+}
+
+/* ===== Ko-fi sticker ===== */
+.case{position:relative}
+.sticker{position:absolute;right:24%;bottom:calc((var(--chin) - 46px) / 2);z-index:3;display:flex;align-items:center;gap:8px;padding:7px 14px 7px 10px;background:#fbf6e6;color:#2b2a33;text-decoration:none;transform:rotate(-5deg);border-radius:3px;box-shadow:0 1px 1px rgba(0,0,0,.25),0 4px 8px rgba(0,0,0,.25);background-image:linear-gradient(135deg,rgba(255,255,255,.6),transparent 40%),repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.015) 3px 4px);transition:transform .15s ease,box-shadow .15s ease}
+.sticker::before{content:"";position:absolute;inset:3px;border:1.5px dashed #6C5EB5;border-radius:2px;pointer-events:none}
+.sticker::after{content:"";position:absolute;right:0;top:0;width:14px;height:14px;background:linear-gradient(225deg,var(--plastic-lo) 0 48%,#d9d2bd 50%,#efe8d4 100%);box-shadow:-1px 1px 2px rgba(0,0,0,.2);border-radius:0 3px 0 0}
+.sticker svg{width:34px;height:29px;flex:none}
+.sticker .cup{fill:#6C5EB5}
+.sticker .handle{fill:none;stroke:#6C5EB5;stroke-width:3}
+.sticker .steam{fill:none;stroke:#9b93c9;stroke-width:1.6;stroke-linecap:round}
+.sticker .heart{fill:#ff6b6b}
+.sticker span{display:flex;flex-direction:column;line-height:.95}
+.sticker b{font:400 21px/1 VT323,monospace;text-transform:uppercase;letter-spacing:.04em}
+.sticker small{font:9px/1.3 "Press Start 2P",VT323,monospace;text-transform:uppercase;color:#6C5EB5}
+.sticker:hover{transform:rotate(-2deg) translateY(-2px);box-shadow:0 2px 2px rgba(0,0,0,.25),0 8px 14px rgba(0,0,0,.3)}
+.sticker:focus-visible{outline:2px dashed #2b2a33;outline-offset:3px}
+@media (max-width:820px){
+  .sticker{right:auto;left:47%;bottom:12px;transform:translateX(-50%) rotate(-5deg);padding:3px 14px 3px 6px;gap:4px;white-space:nowrap}
+  .sticker::after{width:10px;height:10px}
+  .sticker:hover{transform:translateX(-50%) rotate(-2deg)}
+  .sticker svg{width:20px;height:17px}
+  .sticker b{font-size:14px}
+  .sticker small{font-size:7px}
+}
+@media (min-width:821px) and (max-height:820px){
+  .sticker{padding:4px 12px 4px 8px;gap:6px;bottom:calc((var(--chin) - 34px) / 2)}
+  .sticker svg{width:24px;height:20px}
+  .sticker b{font-size:16px}
+  .sticker small{font-size:7px}
+}
+@media (prefers-reduced-motion:reduce){.sticker{transition:none}}
+</style>
+</head>
+<body>
+<div class="monitor">
+ <div class="case">
+  <div class="tube">
+   <div class="glass" id="glass">
+    <div class="scroll" id="scroll">
+<div class="wrap">
+  <section class="unit" aria-label="Connection and patch">
+    <div class="brand"><h1>SidStation editor</h1><span>Live editing and patch library over MIDI</span></div>
+    <div class="ports">
+      <button class="btn primary" id="connect">Connect MIDI</button>
+      <label>In <select id="inSel"><option value="">—</option></select></label>
+      <label>Out <select id="outSel"><option value="">—</option></select></label>
+      <label>Ch <select id="chSel"></select></label>
+      <div class="leds"><span><i id="ledIn"></i>In</span><span><i id="ledOut"></i>Out</span><span id="qstat"></span></div>
+    </div>
+    <div class="lcdrow">
+      <div class="lcd" id="lcd" aria-live="polite">                
+                </div>
+      <div class="actions">
+        <label class="namebox">Name <input id="pname" maxlength="10" spellcheck="false"></label>
+        <select id="tpl" aria-label="Start from a template"><option value="">Start from…</option></select>
+        <button class="tog on" id="liveTog" title="Send every change to the SidStation as you edit"><span class="led"></span>Live</button>
+        <button class="btn" id="audition" title="Send the whole patch into the SidStation's edit buffer (not stored)">Send to edit buffer</button>
+        <button class="btn" id="store" title="Send as a patch dump; the SidStation stores it in the selected slot, or the next free one">Store on SidStation</button>
+        <button class="btn" id="undo" disabled>Undo</button>
+        <button class="btn" id="loadSyx">Open .syx</button>
+        <button class="btn" id="saveSyx">Save patch .syx</button>
+        <input type="file" id="file" accept=".syx,.SYX,application/octet-stream" hidden>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-osc"><div class="cols" id="oscCols"></div></section>
+  <section class="panel" id="tab-filter" hidden><div class="cols" id="filterCols"></div></section>
+  <section class="panel" id="tab-lfo" hidden><div class="cols" id="lfoCols"></div></section>
+  <section class="panel" id="tab-tables" hidden>
+    <p class="note">A table plays a short list of waveforms and pitches at the start of a note, or loops it. This is how C64 drums and Rob Hubbard-style attacks are made. Set <b>Table speed</b> above Off or the table won't play; 1 is the fastest step rate, higher numbers are slower.</p>
+    <div class="cols" id="tableCols"></div>
+  </section>
+  <section class="panel" id="tab-patch" hidden><div class="cols" id="patchCols"></div></section>
+  <section class="panel" id="tab-bank" hidden>
+    <div class="bar">
+      <button class="btn" id="armRx">Receive bank from SidStation</button>
+      <button class="btn" id="slotLoad">Edit selected</button>
+      <button class="btn" id="slotPut">Put current patch in selected</button>
+      <button class="btn" id="slotSend">Store selected on SidStation</button>
+      <button class="btn" id="slotClear">Clear selected</button>
+      <button class="btn" id="bankSave">Save bank .syx</button>
+      <button class="btn warn" id="bankSend">Replace SidStation memory with this bank</button>
+    </div>
+    <p class="note" id="bankNote">Press <b>Receive bank</b>, then on the unit: System › MIDI › SYSEXDump › <b>AllPatch</b>. A single <b>Patch</b> dump opens straight in the editor. Double-click a slot to edit it.</p>
+    <div class="bank" id="bank"></div>
+  </section>
+  <section class="panel" id="tab-setup" hidden><div class="cols" id="setupCols"></div></section>
+
+  <section class="perf" aria-label="Play">
+    <div class="wheels">
+      <div class="wheel"><input type="range" id="pbend" min="-8192" max="8191" value="0" aria-label="Pitch bend">Bend</div>
+      <div class="wheel"><input type="range" id="modw" min="0" max="127" value="0" aria-label="Mod wheel">Mod</div>
+    </div>
+    <div class="kbwrap">
+      <div class="kbtop">
+        <button class="btn small" id="octDn" aria-label="Octave down">−</button><span id="octLbl">C3</span><button class="btn small" id="octUp" aria-label="Octave up">+</button>
+        <label>Velocity <input type="range" id="vel" min="1" max="127" value="100" style="width:110px;vertical-align:middle"></label>
+        
+        <button class="btn small warn" id="panic">All notes off</button>
+      </div>
+      <div class="kbd" id="kbd" title="Computer keys: A–K play notes, Z/X change octave, 1–7 change channel"></div>
+    </div>
+    <div class="knobs" id="knobs"></div>
+  </section>
+<div class="foot"><span>Elektron 1999</span><span>SidStation OS 1.1</span><span>Ready.<span class="cur" aria-hidden="true"></span></span></div>
+</div>
+    </div>
+    <div class="load" id="load" hidden><canvas id="loadCv" aria-hidden="true"></canvas><div class="loadbox" role="status" aria-live="assertive"><div id="loadMsg"></div><div id="loadSub"></div><button class="loadx" id="loadX" type="button" hidden>Cancel</button></div></div>
+    <div class="osd" id="osd" aria-hidden="true"></div>
+    <div class="fx" aria-hidden="true"></div>
+   </div>
+  </div>
+  <a class="sticker" id="kofi" href="https://ko-fi.com/dferreiramarques" target="_blank" rel="noopener" aria-label="Support this editor on Ko-fi (opens in a new tab)">
+   <svg viewBox="0 0 40 34" aria-hidden="true"><path class="steam" d="M13 2c-2 3 2 4 0 7M19 1c-2 3 2 4 0 7M25 2c-2 3 2 4 0 7"/><path class="cup" d="M5 12h26v10a9 9 0 0 1-9 9h-8a9 9 0 0 1-9-9z"/><path class="handle" d="M31 15h2a5 5 0 0 1 0 10h-2.5"/><path class="heart" d="M18 26c-4-2.6-6-4.6-6-7a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 2.4-2 4.4-6 7z"/></svg>
+   <span><b>Buy me a coffee</b><small>ko-fi</small></span>
+  </a>
+  <div class="chin">
+   <nav class="tabs" role="tablist" aria-label="Channels">
+    <button role="tab" data-tab="osc" aria-selected="true" aria-label="Channel 1: Oscillators"><span class="ch-led"></span><span class="ch-key">1</span><span class="ch-lbl">Osc</span></button>
+    <button role="tab" data-tab="filter" aria-selected="false" aria-label="Channel 2: Filter"><span class="ch-led"></span><span class="ch-key">2</span><span class="ch-lbl">Filter</span></button>
+    <button role="tab" data-tab="lfo" aria-selected="false" aria-label="Channel 3: LFOs"><span class="ch-led"></span><span class="ch-key">3</span><span class="ch-lbl">LFO</span></button>
+    <button role="tab" data-tab="tables" aria-selected="false" aria-label="Channel 4: Tables"><span class="ch-led"></span><span class="ch-key">4</span><span class="ch-lbl">Table</span></button>
+    <button role="tab" data-tab="patch" aria-selected="false" aria-label="Channel 5: Patch &amp; knobs"><span class="ch-led"></span><span class="ch-key">5</span><span class="ch-lbl">Patch</span></button>
+    <button role="tab" data-tab="bank" aria-selected="false" aria-label="Channel 6: Library"><span class="ch-led"></span><span class="ch-key">6</span><span class="ch-lbl">Library</span></button>
+    <button role="tab" data-tab="setup" aria-selected="false" aria-label="Channel 7: Setup"><span class="ch-led"></span><span class="ch-key">7</span><span class="ch-lbl">Setup</span></button>
+   </nav>
+   <div class="badge" aria-hidden="true"><span class="stripes"><i></i><i></i><i></i><i></i><i></i></span><span class="ind"><b id="crtLed" class="on"></b></span></div>
+   <div class="right">
+    <span class="plate">Video monitor<br>Model 6581</span>
+    <span class="pwr"><button id="power" aria-label="Turn screen off" aria-pressed="true"></button>Power</span>
+    <span class="jacks" aria-hidden="true"><span class="jack" style="--j:#d8b737"></span><span class="jack" style="--j:#e6e6e2"></span></span>
+   </div>
+  </div>
+ </div>
+ <div class="foot2" aria-hidden="true"></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+/* ===== SidStation core: patch model, SysEx encode/decode (from manual rev 2.2b, OS 1.1) ===== */
+const HDR = [0xF0, 0x00, 0x20, 0x3C, 0x01, 0x00];
+const cfg = { ch: 0, live: true, dpDelay: 6, dumpDelay: 150, swapPitch: false, signed8: false, sizeAdj: 0 };
+
+const NOTE = ['C-','C#','D-','D#','E-','F-','F#','G-','G#','A-','A#','B-'];
+const noteName = n => NOTE[((n % 12) + 12) % 12] + Math.floor(n / 12);   // manual: index 45 = A-3
+const ATK = ['2ms','8ms','16ms','24ms','38ms','56ms','68ms','80ms','100ms','240ms','500ms','800ms','1s','3s','5s','8s'];
+const DEC = ['6ms','24ms','48ms','72ms','114ms','168ms','204ms','240ms','300ms','750ms','1.5s','2.4s','3s','9s','15s','24s'];
+const ATKms = [2,8,16,24,38,56,68,80,100,240,500,800,1000,3000,5000,8000];
+const DECms = [6,24,48,72,114,168,204,240,300,750,1500,2400,3000,9000,15000,24000];
+
+const LFOSEL = [[0,'LFO 1'],[1,'LFO 2'],[2,'LFO 3'],[3,'LFO 4']];
+const WAVES  = [[1,'Triangle'],[2,'Sawtooth'],[4,'Pulse'],[5,'Mixed'],[8,'Noise'],[0,'Silent']];
+const FTYPES = [[0,'Off'],[1,'Low pass'],[2,'Band pass'],[3,'Low + band'],[4,'High pass'],[5,'Notch (low + high)'],[6,'Band + high'],[7,'All three']];
+const LTYPES = [[0,'Triangle'],[1,'Sawtooth'],[2,'Ramp'],[3,'Square'],[4,'Random'],[7,'Flat']];
+const SRCS   = [[0,'Mod wheel'],[1,'Pitch bend'],[2,'Velocity'],[3,'Aftertouch'],[4,'CTRL1 (CC 20)'],[5,'CTRL2 (CC 21)'],[6,'CTRL3 (CC 22)'],[7,'CTRL4 (CC 23)'],[8,'LFO 1'],[9,'LFO 2'],[10,'LFO 3'],[11,'LFO 4']];
+const DESTS  = [[0,'None'],[1,'Depth'],[2,'Speed'],[3,'Sample & hold'],[4,'Lace']];
+const LACEW  = [[0,'Zero'],[1,'LFO 1'],[2,'LFO 2'],[3,'LFO 3'],[4,'LFO 4']];
+const TWAVES = [[9,'---'],[1,'Tri'],[2,'Saw'],[4,'Puls'],[5,'Mix'],[8,'Nois'],[0,'Off']];
+const TBASE  = [246, 376, 506];   // Direct Program memory address of table 1/2/3 (65 rows x 2 bytes)
+
+function decodeSigned(b) { b &= 0xFF; if (b & 0x80) return b - 256; if (b & 0x40) return b - 128; return b; }
+
+/* ---- parameter map: idx = byte in patch dump, addr = Direct Program memory address ---- */
+const P = [], PK = {};
+function def(o) {
+  o.mask = o.mask ?? 0xFF; o.shift = o.shift ?? 0; o.min = o.min ?? 0;
+  if (o.max == null) o.max = o.kind === 'bool' ? 1 : (o.options ? Math.max(...o.options.map(x => x[0])) : 127);
+  o.addr = o.addr ?? o.idx; P.push(o); PK[o.key] = o; return o;
+}
+const B = (key, sec, label, idx, bit, x) => def(Object.assign({ key, sec, label, idx, mask: 1, shift: bit, kind: 'bool' }, x || {}));
+const R = (key, sec, label, idx, min, max, x) => def(Object.assign({ key, sec, label, idx, kind: 'range', min, max }, x || {}));
+const S = (key, sec, label, idx, mask, shift, options, x) => def(Object.assign({ key, sec, label, idx, mask, shift, kind: 'select', options }, x || {}));
+const off0 = v => v ? String(v) : 'Off';
+
+// patch-level
+S('poly', 'patch', 'Voice mode', 22, 1, 3, [[0,'Single (3 layers, mono)'],[1,'Poly (3 voices, osc 1)']], { noRand: 1 });
+B('legato', 'patch', 'Legato portamento', 22, 5);
+B('reinit', 'patch', 'Retrigger every note', 25, 6);
+R('speed', 'patch', 'Update speed', 34, 50, 200, { fmt: v => v + ' Hz', noRand: 1 });
+R('hcut', 'patch', 'Hard cut', 35, 0, 15, { noRand: 1 });
+for (let n = 0; n < 4; n++) {
+  R(`dc${n}`, 'dc', `Knob ${n+1} target`, 10 + 3*n, 0, 96, { fmt: v => v ? '#' + v : 'None', noRand: 1 });
+  R(`dc${n}ld`, 'dc', 'Lowest value', 11 + 3*n, 0, 127, { noRand: 1 });
+  R(`dc${n}lu`, 'dc', 'Highest value', 12 + 3*n, 0, 127, { noRand: 1 });
+}
+// filter
+S('ftype', 'filter', 'Type', 25, 7, 0, FTYPES);
+R('cut', 'filter', 'Cutoff', 26, 0, 127);
+R('res', 'filter', 'Resonance', 24, 0, 15, { mask: 0x0F, shift: 4 });
+R('fenv', 'filter', 'Env amount', 27, 0, 127);
+R('fatt', 'filter', 'Attack', 28, 0, 127);
+R('fdec', 'filter', 'Decay', 29, 0, 127);
+R('fsus', 'filter', 'Sustain', 30, 0, 127);
+R('frel', 'filter', 'Release', 31, 0, 127);
+B('finv', 'filter', 'Invert env', 22, 7);
+B('fwrap', 'filter', 'Wrap cutoff', 22, 6);
+B('fsync', 'filter', 'Env restarts on note', 22, 4);
+S('flfo', 'filter', 'Mod LFO', 25, 3, 4, LFOSEL);
+R('flfod', 'filter', 'LFO depth', 32, 0, 127);
+R('flfow', 'filter', 'Wheel adds', 33, 0, 127);
+// oscillators (21 bytes each)
+for (let o = 0; o < 3; o++) {
+  const b = 36 + 21*o, a = 71 + 21*o, s = 'osc' + o, k = x => `o${o}_${x}`;
+  B(k('on'), s, 'Active', 22, o, { noRand: 1 });
+  B(k('flt'), s, 'Filter', 24, o);
+  B(k('spwm'), s, 'PW key sync', b, 0, { addr: a });
+  B(k('gate'), s, 'Gate env', b, 1, { addr: a });
+  R(k('track'), s, 'Pitch', b+1, 0, 99, { addr: a+1, fmt: v => v ? 'Fixed ' + noteName(v) : 'Keyboard', noRand: 1 });
+  R(k('arp'), s, 'Arp speed', b+2, 0, 127, { addr: a+2, fmt: off0, noRand: 1 });
+  R(k('trn'), s, 'Transpose', b+3, -24, 24, { addr: a+3, signed: 1, fmt: v => (v > 0 ? '+' : '') + v + ' st', step: 1 });
+  R(k('det'), s, 'Detune', b+4, -64, 63, { addr: a+4, signed: 1, fmt: v => (v > 0 ? '+' : '') + v });
+  R(k('pb'), s, 'Bend range', b+5, 0, 24, { addr: a+5, fmt: v => '±' + v, noRand: 1 });
+  R(k('a'), s, 'Attack', b+6, 0, 15, { addr: a+6, fmt: v => ATK[v] });
+  R(k('d'), s, 'Decay', b+7, 0, 15, { addr: a+7, fmt: v => DEC[v] });
+  R(k('s'), s, 'Sustain', b+8, 0, 15, { addr: a+8 });
+  R(k('r'), s, 'Release', b+9, 0, 15, { addr: a+9, fmt: v => DEC[v] });
+  R(k('dly'), s, 'Delay', b+10, 0, 127, { addr: a+10, fmt: off0, noRand: 1 });
+  R(k('pws'), s, 'PW start', b+11, 0, 127, { addr: a+11 });
+  R(k('pwa'), s, 'PW sweep', b+12, 0, 127, { addr: a+12, fmt: off0 });
+  S(k('pwl'), s, 'PW LFO', b+13, 0xFF, 0, LFOSEL, { addr: a+13 });
+  R(k('pwd'), s, 'PW depth', b+14, 0, 127, { addr: a+14 });
+  S(k('wave'), s, 'Waveform', b+15, 0x0F, 4, WAVES, { addr: a+15 });
+  B(k('sync'), s, 'Hard sync', b+15, 1, { addr: a+15, cc: [40,56,78][o], help: 'Locks this oscillator to the previous one (osc 2 to 1, 3 to 2, 1 to 3). Best on triangle, with transpose or vibrato on this oscillator.' });
+  B(k('ring'), s, 'Ring mod', b+15, 2, { addr: a+15, cc: [41,57,79][o], help: 'Ring-modulates with the previous oscillator (osc 2 with 1, 3 with 2, 1 with 3). Best on triangle.' });
+  R(k('port'), s, 'Portamento', b+16, 0, 99, { addr: a+16, fmt: off0 });
+  S(k('vibl'), s, 'Vib LFO', b+17, 0xFF, 0, LFOSEL, { addr: a+17 });
+  R(k('vibd'), s, 'Vib depth', b+18, 0, 127, { addr: a+18 });
+  R(k('vibw'), s, 'Wheel adds', b+19, 0, 127, { addr: a+19 });
+  R(k('tbl'), s, 'Table speed', b+20, 0, 127, { addr: a+20, fmt: off0, noRand: 1 });
+}
+// LFOs (11 bytes in dump, 28-byte stride in memory)
+for (let l = 0; l < 4; l++) {
+  const b = 99 + 11*l, a = 134 + 28*l, s = 'lfo' + l, k = x => `l${l}_${x}`;
+  S(k('type'), s, 'Shape', b, 7, 0, LTYPES, { addr: a });
+  S(k('src'), s, 'Controlled by', b, 0x0F, 4, SRCS, { addr: a, noRand: 1 });
+  B(k('sync'), s, 'Restart on note', b+1, 0, { addr: a+1 });
+  B(k('inv'), s, 'Invert', b+1, 1, { addr: a+1 });
+  B(k('abz'), s, 'Positive only', b+1, 2, { addr: a+1 });
+  B(k('snoff'), s, 'Restart on release', b+1, 3, { addr: a+1 });
+  S(k('dest'), s, 'Control target', b+1, 7, 4, DESTS, { addr: a+1, noRand: 1 });
+  R(k('speed'), s, 'Speed', b+2, 0, 127, { addr: a+2, help: 'Higher numbers are slower' });
+  R(k('sh'), s, 'Sample & hold', b+3, 0, 127, { addr: a+3, fmt: off0 });
+  R(k('depth'), s, 'Depth', b+4, 0, 127, { addr: a+4 });
+  S(k('add'), s, 'Add LFO', b+5, 0xFF, 0, LFOSEL, { addr: a+5 });
+  R(k('lace'), s, 'Lace speed', b+6, 0, 127, { addr: a+6, fmt: off0 });
+  S(k('lacew'), s, 'Lace with', b+7, 0xFF, 0, LACEW, { addr: a+7 });
+  R(k('addd'), s, 'Add depth', b+8, 0, 127, { addr: a+8, fmt: off0 });
+  R(k('ctrlv'), s, 'Control amount', b+9, 0, 127, { addr: a+9, noRand: 1 });
+  R(k('fade'), s, 'Fade in', b+10, 0, 127, { addr: a+10, fmt: off0 });
+}
+
+/* ---- patch object ---- */
+const mkTable = () => ({ steps: [], term: { type: 'end', lp: 0 } });
+const newPatch = () => ({ name: 'Init', bytes: new Uint8Array(143), tables: [mkTable(), mkTable(), mkTable()] });
+function clonePatch(pt) { return { name: pt.name, bytes: new Uint8Array(pt.bytes), tables: JSON.parse(JSON.stringify(pt.tables)) }; }
+
+function getVal(pt, p) { const b = pt.bytes[p.idx]; return p.signed ? decodeSigned(b) : (b >> p.shift) & p.mask; }
+function setVal(pt, p, v) {
+  v = Math.round(Math.max(p.min, Math.min(p.max, v)));
+  if (p.signed) { pt.bytes[p.idx] = cfg.signed8 ? (v & 0xFF) : (v & 0x7F); return v; }
+  const m = (p.mask << p.shift) & 0xFF;
+  pt.bytes[p.idx] = ((pt.bytes[p.idx] & ~m) | ((v & p.mask) << p.shift)) & 0xFF;
+  return v;
+}
+
+/* ---- tables ---- */
+const pitchBases = () => cfg.swapPitch ? { ADD: 0x80, SUB: 0xC0 } : { ADD: 0xC0, SUB: 0x80 };
+function stepPitchByte(st) { const { ADD, SUB } = pitchBases(); if (st.m === 'F') return st.n & 0x7F; return (st.m === '+' ? ADD : SUB) + Math.min(63, st.n); }
+function decodePitch(b) { const { ADD, SUB } = pitchBases(); if (b < 0x80) return { m: 'F', n: b }; if ((b & 0xC0) === ADD) return { m: '+', n: b - ADD }; return { m: '-', n: b - SUB }; }
+function encodeTable(t) {
+  const a = [];
+  t.steps.forEach(st => a.push(((st.w & 15) << 4) | (st.r ? 4 : 0) | (st.s ? 2 : 0), stepPitchByte(st)));
+  if (t.term.type === 'loop' && t.steps.length) a.push(0xFE, Math.min(t.term.lp, t.steps.length - 1) & 0x7F); else a.push(0xFF);
+  return a;
+}
+function parseTables(dec, pos) {
+  const ts = [];
+  for (let o = 0; o < 3; o++) {
+    const t = mkTable();
+    while (pos < dec.length && t.steps.length < 32) {
+      const b1 = dec[pos];
+      if (b1 === 0xFF) { pos++; break; }
+      if (b1 === 0xFE) { t.term = { type: 'loop', lp: dec[pos+1] ?? 0 }; pos += 2; break; }
+      const pp = decodePitch(dec[pos+1] ?? 0);
+      t.steps.push({ w: b1 >> 4, r: (b1 >> 2) & 1, s: (b1 >> 1) & 1, m: pp.m, n: pp.n });
+      pos += 2;
+    }
+    if (t.steps.length > 31) t.steps.length = 31;
+    ts.push(t);
+  }
+  return ts;
+}
+
+/* ---- dump encode / decode ---- */
+function serializeDecoded(pt) {
+  const nm = (pt.name + '          ').slice(0, 10);
+  const out = [];
+  for (let i = 0; i < 10; i++) out.push(nm.charCodeAt(i) & 0x7F);
+  for (let i = 10; i < 143; i++) out.push(pt.bytes[i]);
+  pt.tables.forEach(t => out.push(...encodeTable(t)));
+  return out;
+}
+function fromDecoded(dec) {
+  const pt = newPatch();
+  pt.name = String.fromCharCode(...dec.slice(0, 10).map(c => (c < 32 || c > 126) ? 32 : c)).replace(/\s+$/, '');
+  for (let i = 10; i < 143; i++) pt.bytes[i] = dec[i] ?? 0;
+  pt.tables = parseTables(dec, 143);
+  return pt;
+}
+function buildDump(pt) {
+  const dec = serializeDecoded(pt);
+  const size = dec.length + cfg.sizeAdj;
+  const m = [...HDR, 0x02, 0x00, (size >> 7) & 0x03, size & 0x7F];
+  for (let i = 0; i < 24; i++) m.push(0x2D);
+  m.push(0x45, ...dec.slice(0, 10));
+  dec.slice(10).forEach(b => m.push((b >> 4) & 0x0F, b & 0x0F));
+  m.push(0xF7);
+  return m;
+}
+function parseDump(m) {
+  const s = m.indexOf(0x45, 10), end = m.lastIndexOf(0xF7);
+  if (s < 0 || end < s) return null;
+  const dec = m.slice(s + 1, s + 11);
+  for (let i = s + 11; i + 1 < end; i += 2) dec.push(((m[i] & 0x0F) << 4) | (m[i+1] & 0x0F));
+  const size = ((m[8] & 0x03) << 7) | (m[9] & 0x7F);
+  return { pt: fromDecoded(dec), size, decLen: dec.length, dec };
+}
+function learnFromDump(r) {
+  const d = r.size - r.decLen;
+  if (Math.abs(d) <= 20) cfg.sizeAdj = d;
+  for (let o = 0; o < 3; o++) for (const k of [3, 4]) if ((r.dec[36 + 21*o + k] ?? 0) & 0x80) cfg.signed8 = true;
+}
+const skipMsg = () => [...HDR, 0x03, 0xF7];
+const clearMsg = () => [...HDR, 0x01, 0x45, ...Array(14).fill(0x2D), 0xF7];
+const dpMsg = (addr, mask, shift, data) => [...HDR, 0x04, (addr >> 7) & 0x07, addr & 0x7F, mask & 0x7F, shift & 0x07, data & 0x7F, 0xF7];
+
+function splitSysex(arr) {
+  const out = []; let cur = null;
+  for (const b of arr) {
+    if (b === 0xF0) cur = [b];
+    else if (cur) { cur.push(b); if (b === 0xF7) { out.push(cur); cur = null; } }
+  }
+  return out;
+}
+const isSid = m => m.length > 6 && m[0] === 0xF0 && m[1] === 0x00 && m[2] === 0x20 && m[3] === 0x3C && m[4] === 0x01;
+
+/* ---- live (Direct Program) messages ---- */
+function paramMsgs(pt, p) {
+  if (p.cc) return [{ k: 'cc' + p.cc, cc: [p.cc, getVal(pt, p) ? 127 : 0] }];
+  const raw = pt.bytes[p.idx];
+  if (p.mask === 0xFF) {
+    const out = [{ k: `${p.addr}:7f:0`, m: dpMsg(p.addr, 0x7F, 0, raw & 0x7F) }];
+    if (p.max > 127 || (p.signed && cfg.signed8)) out.push({ k: `${p.addr}:1:7`, m: dpMsg(p.addr, 1, 7, (raw >> 7) & 1) });
+    return out;
+  }
+  return [{ k: `${p.addr}:${p.mask}:${p.shift}`, m: dpMsg(p.addr, p.mask, p.shift, (raw >> p.shift) & p.mask) }];
+}
+function nameMsgs(pt) {
+  const nm = (pt.name + '          ').slice(0, 10);
+  return [...nm].map((c, i) => ({ k: `${i}:7f:0`, m: dpMsg(i, 0x7F, 0, c.charCodeAt(0)) }));
+}
+function rowMsgs(o, i, b1, b2) {
+  const a = TBASE[o] + 2*i, k = `t${o}:${i}`;
+  return [
+    { k: k + 'a', m: dpMsg(a, 0x0F, 4, b1 >> 4) }, { k: k + 'b', m: dpMsg(a, 0x0F, 0, b1 & 15) },
+    { k: k + 'c', m: dpMsg(a + 1, 0x0F, 4, b2 >> 4) }, { k: k + 'd', m: dpMsg(a + 1, 0x0F, 0, b2 & 15) }];
+}
+function tableMsgs(pt, o) {
+  const t = pt.tables[o], out = [];
+  t.steps.forEach((st, i) => out.push(...rowMsgs(o, i, ((st.w & 15) << 4) | (st.r ? 4 : 0) | (st.s ? 2 : 0), stepPitchByte(st))));
+  const n = t.steps.length;
+  if (t.term.type === 'loop' && n) out.push(...rowMsgs(o, n, 0xFE, Math.min(t.term.lp, n - 1)));
+  else out.push(...rowMsgs(o, n, 0xFF, 0xFF));
+  return out;
+}
+function fullPatchMsgs(pt) {
+  const out = nameMsgs(pt);
+  P.forEach(p => out.push(...paramMsgs(pt, p)));
+  for (let o = 0; o < 3; o++) out.push(...tableMsgs(pt, o));
+  return out;
+}
+
+if (typeof module !== 'undefined') module.exports = { HDR, cfg, P, PK, newPatch, setVal, getVal, buildDump, parseDump, serializeDecoded, fromDecoded, encodeTable, parseTables, dpMsg, paramMsgs, tableMsgs, fullPatchMsgs, splitSysex, clonePatch, noteName };
+
+</script>
+<script>
+/* ===== SidStation editor app ===== */
+const $ = s => document.querySelector(s);
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c instanceof Node ? c : document.createTextNode(c));
+  return e;
+}
+const pad = (s, n) => (String(s) + ' '.repeat(n)).slice(0, n);
+
+let patch = newPatch();
+let bank = new Array(100).fill(null);
+let selSlot = 0;
+const undoStack = [];
+const reg = { main: {}, tables: {} };
+let midi = null, inPort = null, outPort = null;
+
+/* ---------- persistence ---------- */
+function save() {
+  try {
+    localStorage.setItem('sidstation-editor', JSON.stringify({
+      patch: serializeDecoded(patch), bank: bank.map(p => p ? serializeDecoded(p) : null),
+      cfg, inName: inPort?.name, outName: outPort?.name, oct
+    }));
+  } catch (e) { /* storage unavailable: fine */ }
+}
+let saveT = 0; const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(save, 400); };
+function restore() {
+  try {
+    const s = JSON.parse(localStorage.getItem('sidstation-editor') || 'null');
+    if (!s) return null;
+    Object.assign(cfg, s.cfg || {});
+    if (s.patch) patch = fromDecoded(s.patch);
+    if (s.bank) bank = s.bank.map(d => d ? fromDecoded(d) : null);
+    if (s.oct != null) oct = s.oct;
+    return s;
+  } catch (e) { return null; }
+}
+
+/* ---------- toast + LCD ---------- */
+let toastT = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+let lcdLine2 = 'Ready';
+function lcd(line2) {
+  if (line2 != null) lcdLine2 = line2;
+  $('#lcd').textContent = pad((patch.name || 'Untitled'), 16) + '\n' + pad(lcdLine2, 16);
+}
+const short = { 'Width LFO depth': 'PW LFO dep', 'Speed (higher = slower)': 'Speed' };
+function lcdParam(p, v) {
+  const sec = p.sec.startsWith('osc') ? 'O' + (+p.sec[3] + 1) + ' ' : p.sec.startsWith('lfo') ? 'L' + (+p.sec[3] + 1) + ' ' : '';
+  const label = (short[p.label] || p.label);
+  const val = p.fmt ? p.fmt(v) : String(v);
+  const txt = (p.kind === 'bool') ? (v ? 'on' : 'off') : (p.kind === 'select' ? (p.options.find(o => o[0] === v)?.[1] ?? v) : val);
+  const left = (sec + label).slice(0, Math.max(4, 15 - String(txt).length));
+  lcd(left + ' '.repeat(Math.max(1, 16 - left.length - String(txt).length)) + txt);
+}
+
+/* ---------- send queue (throttled, coalesced) ---------- */
+const Q = new Map(); const order = []; let busy = false; let dumpN = 0;
+function qstat() { $('#qstat').textContent = order.length > 4 ? `Sending ${order.length}…` : ''; }
+function enqueue(item, delay) {
+  if (!Q.has(item.k)) order.push(item.k);
+  Q.set(item.k, { ...item, d: delay });
+  pump(); qstat();
+}
+function pump() {
+  if (busy) return;
+  const k = order.shift(); if (k === undefined) { qstat(); return; }
+  const it = Q.get(k); Q.delete(k);
+  busy = true;
+  if (it.cc) sendShort([0xB0 | cfg.ch, it.cc[0], it.cc[1]]); else rawSend(it.m);
+  setTimeout(() => { busy = false; pump(); }, it.cc ? 2 : it.d);
+  if (order.length % 20 === 0) qstat();
+}
+function sendItems(items) { if (!outPort) return; items.forEach(it => enqueue(it, cfg.dpDelay)); }
+function sendDump(msg) { if (!outPort) return; enqueue({ k: 'dump' + (dumpN++), m: msg }, cfg.dumpDelay); }
+
+/* ---------- loading overlay (C64 raster bars) ---------- */
+const C64PAL = ['#000000','#ffffff','#880000','#aaffee','#cc44cc','#00cc55','#0000aa','#eeee77','#dd8855','#664400','#ff7777','#333333','#777777','#aaff66','#0088ff','#bbbbbb'];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const slowMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let loadId = 0, loadTimer = 0;
+function drawBars() {
+  const cv = $('#loadCv'), g = $('#glass');
+  const w = Math.max(1, Math.round(g.clientWidth / 4)), h = Math.max(1, Math.round(g.clientHeight / 4));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const c = cv.getContext('2d'); let y = 0;
+  while (y < h) {
+    const bh = 1 + Math.floor(Math.random() * Math.random() * 7);
+    c.fillStyle = C64PAL[Math.floor(Math.random() * 16)]; c.fillRect(0, y, w, bh);
+    if (Math.random() < .3) { const x = Math.floor(Math.random() * w); c.fillStyle = C64PAL[Math.floor(Math.random() * 16)]; c.fillRect(x, y, w - x, bh); }
+    y += bh;
+  }
+}
+function barsLoop(id) { if (id !== loadId) return; drawBars(); loadTimer = setTimeout(() => barsLoop(id), slowMotion() ? 700 : 55); }
+// Shows the loader for at least 2 s, and until everything queued for MIDI has been sent.
+function busyStart(text, opts = {}) {
+  const id = ++loadId, t0 = performance.now(), mine = () => id === loadId;
+  $('#loadMsg').textContent = text; $('#loadSub').textContent = opts.sub || '';
+  const x = $('#loadX'); x.hidden = !opts.cancel; x.onclick = opts.cancel || null;
+  $('#load').hidden = false; clearTimeout(loadTimer); barsLoop(id); lcd(text);
+  return {
+    msg(m) { if (mine()) $('#loadMsg').textContent = m; },
+    sub(s) { if (mine()) $('#loadSub').textContent = s; },
+    async done(final) {
+      let total = order.length;
+      while (order.length || busy) { total = Math.max(total, order.length); if (mine() && total > 3) $('#loadSub').textContent = `${total - order.length} / ${total}`; await sleep(80); }
+      const rest = 2000 - (performance.now() - t0); if (rest > 0) await sleep(rest);
+      if (!mine()) return;
+      if (final) { $('#loadMsg').textContent = final; $('#loadSub').textContent = ''; $('#loadX').hidden = true; lcd(final); await sleep(550); }
+      if (!mine()) return;
+      $('#load').hidden = true; clearTimeout(loadTimer); loadId++;
+    }
+  };
+}
+/* ---------- CRT frame ---------- */
+let crtT = 0, screenOn = true;
+function crtAct() { const l = $('#crtLed'); if (!l || !screenOn) return; l.classList.add('act'); clearTimeout(crtT); crtT = setTimeout(() => l.classList.remove('act'), 60); }
+function power() {
+  const g = $('#glass'), b = $('#power'), led = $('#crtLed');
+  screenOn = !screenOn; g.classList.remove('boot', 'shut');
+  if (screenOn) { g.classList.remove('off'); void g.offsetWidth; g.classList.add('boot'); }
+  else { g.classList.add('shut'); setTimeout(() => { if (!screenOn) g.classList.add('off'); }, 330); }
+  led.classList.toggle('on', screenOn);
+  b.setAttribute('aria-pressed', screenOn); b.setAttribute('aria-label', screenOn ? 'Turn screen off' : 'Turn screen on');
+}
+/* ---------- MIDI ---------- */
+let ledInT = 0, ledOutT = 0;
+function blink(id) { crtAct(); const l = $(id); l.classList.add('on'); clearTimeout(id === '#ledIn' ? ledInT : ledOutT); const t = setTimeout(() => l.classList.remove('on'), 70); if (id === '#ledIn') ledInT = t; else ledOutT = t; }
+function rawSend(bytes) {
+  if (!outPort) return false;
+  try { outPort.send(bytes); blink('#ledOut'); monitor('→', bytes); return true; }
+  catch (e) { monitor('!', 'send failed: ' + e.message); return false; }
+}
+function sendShort(bytes) { if (!outPort) return; try { outPort.send(bytes); blink('#ledOut'); } catch (e) {} }
+const monLines = [];
+function monitor(dir, data) {
+  const s = typeof data === 'string' ? data : Array.from(data.slice(0, 24), b => b.toString(16).padStart(2, '0')).join(' ') + (data.length > 24 ? ` … (${data.length} bytes)` : '');
+  monLines.push(dir + ' ' + s); if (monLines.length > 120) monLines.shift();
+  const m = $('#mon'); if (m && !document.hidden) { m.textContent = monLines.join('\n'); m.scrollTop = m.scrollHeight; }
+}
+async function connect() {
+  if (!navigator.requestMIDIAccess) { toast('This browser has no Web MIDI. Use Chrome or Edge on desktop.'); return; }
+  try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
+  catch (e) { toast('MIDI access was blocked. Allow MIDI + SysEx for this page in the browser site settings.'); return; }
+  midi.onstatechange = fillPorts; fillPorts(); $('#connect').textContent = 'MIDI connected';
+}
+let wantIn = '', wantOut = '';
+function fillPorts() {
+  const fill = (sel, ports, want) => {
+    const cur = sel.value || want;
+    sel.innerHTML = ''; sel.append(el('option', { value: '' }, '—'));
+    ports.forEach(p => sel.append(el('option', { value: p.id }, p.name)));
+    const match = ports.find(p => p.id === cur || p.name === cur) || ports.find(p => /sid/i.test(p.name));
+    if (match) sel.value = match.id;
+  };
+  fill($('#inSel'), [...midi.inputs.values()], wantIn);
+  fill($('#outSel'), [...midi.outputs.values()], wantOut);
+  bindPorts();
+}
+function bindPorts() {
+  if (inPort) inPort.onmidimessage = null;
+  inPort = midi?.inputs.get($('#inSel').value) || null;
+  outPort = midi?.outputs.get($('#outSel').value) || null;
+  if (inPort) inPort.onmidimessage = onMidi;
+  saveSoon();
+}
+let sxBuf = null;
+function onMidi(e) {
+  const d = Array.from(e.data); blink('#ledIn');
+  if (d[0] === 0xF0 || sxBuf) {
+    sxBuf = (d[0] === 0xF0) ? d : sxBuf.concat(d);
+    if (sxBuf[sxBuf.length - 1] === 0xF7) { const m = sxBuf; sxBuf = null; monitor('←', m); handleSysex(m); }
+    return;
+  }
+  if ((d[0] & 0xF0) === 0xB0 && (d[0] & 15) === cfg.ch && d[1] >= 16 && d[1] <= 19) {
+    const k = $('#cc' + d[1]); if (k) k.value = d[2];
+    lcd(`Knob ${d[1] - 15}`.padEnd(13) + String(d[2]).padStart(3));
+  }
+}
+
+/* receiving dumps */
+let capture = null, capT = 0;
+function armCapture() {
+  capture = { pos: 0, got: 0, started: false };
+  capture.ui = busyStart('Waiting for SidStation', { sub: 'On the unit: System › MIDI › SYSEXDump › AllPatch', cancel: () => endCapture() });
+  clearTimeout(capT); capT = setTimeout(endCapture, 60000);
+}
+function endCapture() {
+  if (!capture) return;
+  const n = capture.got, ui = capture.ui; capture = null; clearTimeout(capT);
+  if (n) { renderBank(); saveSoon(); }
+  ui.done(n ? `Received ${n} patches` : 'Nothing received');
+}
+function handleSysex(m) {
+  if (!isSid(m)) return;
+  const t = m[6];
+  if (t === 0x01) { if (!capture) armCapture(); if (!capture.started) { bank = new Array(100).fill(null); capture.started = true; } renderBank(); return; }
+  if (t === 0x02) {
+    const r = parseDump(m); if (!r) return; learnFromDump(r);
+    if (capture) {
+      if (!capture.started) { bank = new Array(100).fill(null); capture.started = true; }
+      if (capture.pos < 100) bank[capture.pos] = r.pt; capture.pos++; capture.got++;
+      capture.ui.msg('Receiving bank'); capture.ui.sub(`${capture.got} patches · slot P${String(capture.pos - 1).padStart(2, '0')}`);
+      renderBankSoon(); clearTimeout(capT); capT = setTimeout(endCapture, 2500);
+      if (capture.pos >= 100) endCapture();
+    } else { const ui = busyStart('Receiving patch'); pushUndo(); patch = r.pt; refreshAll(); saveSoon(); ui.done(`Received “${patch.name}”`); }
+    return;
+  }
+  if (t === 0x03 && capture) { capture.started = true; capture.pos++; clearTimeout(capT); capT = setTimeout(endCapture, 2500); if (capture.pos >= 100) endCapture(); }
+}
+
+/* ---------- editing ---------- */
+function pushUndo() { undoStack.push(clonePatch(patch)); if (undoStack.length > 40) undoStack.shift(); $('#undo').disabled = false; }
+function undo() {
+  const p = undoStack.pop(); if (!p) return;
+  patch = p; refreshAll(); $('#undo').disabled = !undoStack.length;
+  if (cfg.live) sendItems(fullPatchMsgs(patch));
+  toast('Undone'); saveSoon();
+}
+function change(p, v, fromInput) {
+  v = setVal(patch, p, v);
+  refreshKey(p.key, fromInput);
+  if (p.key === 'speed') refreshKey('hcut');
+  if (/^o\d_[adsr]$/.test(p.key)) drawEnv(+p.key[1]);
+  if (/^f(att|dec|sus|rel|env)$/.test(p.key)) drawFenv();
+  if (cfg.live) sendItems(paramMsgs(patch, p));
+  lcdParam(p, v); saveSoon();
+}
+function refreshKey(key, skipEl) {
+  for (const scope of Object.values(reg)) (scope[key] || []).forEach(f => f(skipEl));
+}
+function refreshAll() {
+  for (const scope of Object.values(reg)) for (const fns of Object.values(scope)) fns.forEach(f => f());
+  $('#pname').value = patch.name;
+  for (let o = 0; o < 3; o++) drawEnv(o);
+  drawFenv(); renderTables(); lcd();
+}
+function control(key, scope = 'main') {
+  const p = PK[key], r = reg[scope];
+  (r[key] = r[key] || []);
+  if (p.kind === 'bool') {
+    const b = el('button', { class: 'tog', type: 'button', 'aria-pressed': 'false', title: p.help || false }, el('span', { class: 'led' }), p.label);
+    b.addEventListener('click', () => change(p, getVal(patch, p) ? 0 : 1));
+    r[key].push(() => { const on = !!getVal(patch, p); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    return b;
+  }
+  if (p.kind === 'select') {
+    const s = el('select', { 'aria-label': p.label });
+    p.options.forEach(([v, l]) => s.append(el('option', { value: v }, l)));
+    s.addEventListener('change', () => change(p, +s.value));
+    r[key].push(() => { s.value = String(getVal(patch, p)); });
+    return el('label', { class: 'row sel' }, el('span', { class: 'lbl' }, p.label), s);
+  }
+  const inp = el('input', { type: 'range', min: p.min, max: p.max, step: 1, 'aria-label': p.label });
+  const out = el('output');
+  inp.addEventListener('input', () => change(p, +inp.value, true));
+  inp.addEventListener('dblclick', () => change(p, p.min < 0 ? 0 : p.min));
+  r[key].push(skip => { const v = getVal(patch, p); if (!skip) inp.value = v; out.textContent = key === 'hcut' ? hcutFmt(v) : (p.fmt ? p.fmt(v) : v); });
+  return el('label', { class: 'row', title: (p.help ? p.help + '. ' : '') + 'Double-click to reset' }, el('span', { class: 'lbl' }, p.label), inp, out);
+}
+const hcutFmt = v => v ? Math.round(v / getVal(patch, PK.speed) * 1000) + ' ms' : 'Off';
+function group(title, keys, scope) {
+  const g = el('div', { class: 'grp' }, title ? el('h4', {}, title) : null);
+  const togs = el('div', { class: 'togs' });
+  keys.forEach(k => { const c = control(k, scope); if (PK[k].kind === 'bool') togs.append(c); else g.append(c); });
+  if (togs.childElementCount) g.append(togs);
+  return g;
+}
+
+/* randomise / mutate */
+function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function randomize(sec, mode) {
+  pushUndo();
+  const keys = P.filter(p => p.sec === sec && !p.noRand);
+  keys.forEach(p => {
+    const v = getVal(patch, p);
+    if (mode === 'mutate') {
+      if (p.kind === 'range') setVal(patch, p, v + Math.round((Math.random() - .5) * 2 * (p.max - p.min) * .12));
+      else if (Math.random() < .12) setVal(patch, p, p.kind === 'bool' ? 1 - v : p.options[rnd(0, p.options.length - 1)][0]);
+    } else {
+      if (p.kind === 'range') setVal(patch, p, rnd(p.min, p.max));
+      else if (p.kind === 'bool') setVal(patch, p, Math.random() < .35 ? 1 : 0);
+      else { const opts = p.options.filter(o => !(p.key.endsWith('_wave') && o[0] === 0)); setVal(patch, p, opts[rnd(0, opts.length - 1)][0]); }
+    }
+  });
+  if (mode !== 'mutate' && sec.startsWith('osc')) {   // keep random oscillators audible and musical
+    const o = sec[3];
+    setVal(patch, PK[`o${o}_s`], rnd(6, 15)); setVal(patch, PK[`o${o}_trn`], [0, 0, 12, -12, 7, 5][rnd(0, 5)]);
+    setVal(patch, PK[`o${o}_det`], rnd(-12, 12)); setVal(patch, PK[`o${o}_vibd`], rnd(0, 20));
+  }
+  if (sec === 'filter' && mode !== 'mutate') setVal(patch, PK.cut, rnd(30, 120));
+  refreshAll();
+  if (cfg.live) sendItems(P.filter(p => p.sec === sec).flatMap(p => paramMsgs(patch, p)));
+  lcd((mode === 'mutate' ? 'Mutated ' : 'Randomised ') + sec.replace(/osc(\d)/, (m, d) => 'osc ' + (+d + 1)).replace(/lfo(\d)/, (m, d) => 'LFO ' + (+d + 1)));
+  saveSoon();
+}
+const modHead = (title, sec, extra) => el('header', {}, el('h3', {}, title), ...(extra || []),
+  el('button', { class: 'btn small', onclick: () => randomize(sec, 'mutate'), title: 'Nudge this section a little' }, 'Mutate'),
+  el('button', { class: 'btn small', onclick: () => randomize(sec, 'random') }, 'Random'));
+
+/* envelope drawings */
+function envSvg(id) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'env'); s.setAttribute('viewBox', '0 0 240 46'); s.setAttribute('preserveAspectRatio', 'none'); s.id = id; s.setAttribute('aria-hidden', 'true'); return s; }
+function envPath(svg, a, d, s, r) {
+  if (!svg) return;
+  const x1 = 4 + a, x2 = x1 + d, x3 = x2 + 50, x4 = x3 + r, ys = 42 - s * 38;
+  svg.innerHTML = `<line x1="0" y1="42" x2="240" y2="42"/><path d="M4 42 L${x1} 4 L${x2} ${ys} L${x3} ${ys} L${x4} 42"/>`;
+}
+const tscale = (ms, max) => Math.sqrt(ms / max) * 58;
+function drawEnv(o) {
+  const g = k => getVal(patch, PK[`o${o}_${k}`]);
+  const gate = getVal(patch, PK[`o${o}_gate`]);
+  envPath($('#env' + o), gate ? 0 : tscale(ATKms[g('a')], 8000), gate ? 0 : tscale(DECms[g('d')], 24000), g('s') / 15, gate ? 0 : tscale(DECms[g('r')], 24000));
+}
+function drawFenv() {
+  const g = k => getVal(patch, PK[k]);
+  envPath($('#envF'), g('fatt') / 127 * 58, g('fdec') / 127 * 58, g('fsus') / 127 * (g('fenv') / 127), g('frel') / 127 * 58);
+}
+
+/* ---------- build panels ---------- */
+function buildOsc() {
+  const host = $('#oscCols');
+  for (let o = 0; o < 3; o++) {
+    const k = x => `o${o}_${x}`, sec = 'osc' + o;
+    host.append(el('section', { class: 'mod oscrow' },
+      el('div', { class: 'oschead' }, el('h3', {}, `Osc ${o + 1}`), control(k('on')),
+        el('button', { class: 'btn small', onclick: () => randomize(sec, 'mutate'), title: 'Nudge this oscillator a little' }, 'Mutate'),
+        el('button', { class: 'btn small', onclick: () => randomize(sec, 'random') }, 'Random')),
+      el('div', { class: 'oc' }, group('', [k('wave'), k('sync'), k('ring'), k('flt')]), group('Vibrato', [k('vibl'), k('vibd'), k('vibw')])),
+      el('div', { class: 'oc' }, group('Pitch', [k('track'), k('trn'), k('det'), k('port'), k('pb'), k('arp')])),
+      el('div', { class: 'oc' }, group('Envelope', [k('a'), k('d'), k('s'), k('r'), k('dly')]), el('div', { class: 'envline' }, control(k('gate')), envSvg('env' + o))),
+      el('div', { class: 'oc' }, group('Pulse width', [k('pws'), k('pwa'), k('pwl'), k('pwd'), k('tbl'), k('spwm')]))));
+  }
+}
+function buildFilter() {
+  $('#filterCols').append(
+    el('section', { class: 'mod' }, modHead('Filter', 'filter'), group('', ['ftype', 'cut', 'res', 'fwrap']),
+      group('Routing (also on each oscillator)', ['o0_flt', 'o1_flt', 'o2_flt'])),
+    el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Filter envelope')), group('', ['fenv', 'fatt', 'fdec', 'fsus', 'frel', 'finv', 'fsync']), envSvg('envF')),
+    el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Filter modulation')), group('', ['flfo', 'flfod', 'flfow']),
+      el('p', { class: 'note' }, 'The 6581 filter distorts more as more oscillators go through it. For patches that don\'t use the filter, set cutoff to 0 and switch routing off: the unit gets a little quieter.')));
+}
+function buildLfo() {
+  for (let l = 0; l < 4; l++) {
+    const k = x => `l${l}_${x}`;
+    $('#lfoCols').append(el('section', { class: 'mod' }, modHead(`LFO ${l + 1}`, 'lfo' + l),
+      group('', [k('type'), k('speed'), k('depth'), k('fade'), k('sh'), k('sync'), k('snoff'), k('inv'), k('abz')]),
+      group('Mix and lace', [k('add'), k('addd'), k('lace'), k('lacew')]),
+      group('Control', [k('src'), k('dest'), k('ctrlv')])));
+  }
+}
+function buildPatch() {
+  $('#patchCols').append(
+    el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Voice')), group('', ['poly', 'speed', 'hcut', 'legato', 'reinit']),
+      el('p', { class: 'note' }, 'Update speed is how often the engine refreshes the SID (Hz); arpeggiators, LFOs and tables are divided from it. Hard cut silences the oscillators briefly on each new note to hide the 6581 envelope bug; about 20 ms is a good start. These only apply when System › Sync source is set to Patch.')),
+    ...[0, 1, 2, 3].map(n => el('section', { class: 'mod' }, el('header', {}, el('h3', {}, `Front knob ${n + 1}`)), group('', [`dc${n}`, `dc${n}ld`, `dc${n}lu`]))),
+  );
+  $('#tab-patch').append(el('p', { class: 'note', style: 'margin:12px 0 0' }, 'The manual gives knob targets only as numbers (0–96) with no list of what each number controls. Set a target on the unit once, receive the patch, and the number will show here.'));
+}
+function buildSetup() {
+  const chSel = $('#chSel');
+  for (let i = 0; i < 16; i++) chSel.append(el('option', { value: i }, i + 1));
+  const num = (label, key, min, max, help) => {
+    const i = el('input', { type: 'number', min, max, value: cfg[key], style: 'width:80px' });
+    i.addEventListener('change', () => { cfg[key] = Math.max(min, Math.min(max, +i.value || min)); i.value = cfg[key]; saveSoon(); });
+    return el('label', { class: 'row sel' }, el('span', { class: 'lbl' }, label), el('span', {}, i, ' ', el('span', { class: 'note' }, help)));
+  };
+  const swap = el('button', { class: 'tog' + (cfg.swapPitch ? ' on' : ''), type: 'button' }, el('span', { class: 'led' }), 'Swap table + / − encoding');
+  swap.addEventListener('click', () => { cfg.swapPitch = !cfg.swapPitch; swap.classList.toggle('on', cfg.swapPitch); renderTables(); saveSoon(); });
+  const theme = el('select', { 'aria-label': 'Theme' }, el('option', { value: '' }, 'Follow system'), el('option', { value: 'light' }, 'Classic blue'), el('option', { value: 'dark' }, 'Night blue'));
+  try { theme.value = localStorage.getItem('sidstation-theme') || ''; } catch (e) {}
+  const applyTheme = () => { if (theme.value) document.documentElement.dataset.theme = theme.value; else delete document.documentElement.dataset.theme; try { localStorage.setItem('sidstation-theme', theme.value); } catch (e) {} };
+  theme.addEventListener('change', applyTheme); applyTheme();
+  let fxOn = true; try { fxOn = localStorage.getItem('sidstation-fx') !== 'off'; } catch (e) {}
+  const fx = el('button', { class: 'tog', type: 'button' }, el('span', { class: 'led' }), 'Scanlines and glow');
+  const applyFx = () => { document.documentElement.classList.toggle('nofx', !fxOn); fx.classList.toggle('on', fxOn); fx.setAttribute('aria-pressed', fxOn); try { localStorage.setItem('sidstation-fx', fxOn ? 'on' : 'off'); } catch (e) {} };
+  fx.addEventListener('click', () => { fxOn = !fxOn; applyFx(); }); applyFx();
+  $('#setupCols').append(
+    el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Getting connected')),
+      el('p', { class: 'note' }, 'Use Chrome or Edge on desktop and allow MIDI with SysEx when asked. Connect your interface\'s MIDI Out to the SidStation\'s MIDI In, and the SidStation\'s MIDI Out back to the interface (needed to receive dumps). Set Ch to the SidStation\'s base channel (System › MIDI › BaseCh).'),
+      el('p', { class: 'note' }, 'Live edits go into the patch you have selected on the unit, like turning its knobs. Nothing is kept until you store it: use the SidStation\'s own Store, or ', el('b', {}, 'Store on SidStation'), ' here. Stay on the unit\'s play screen while sending; the manual advises leaving it alone while it takes in SysEx.')),
+    el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Timing and options')),
+      num('Gap between live edits', 'dpDelay', 1, 60, 'ms'), num('Gap between patch dumps', 'dumpDelay', 40, 1000, 'ms — raise if the unit crashes during bank sends'),
+      el('div', { class: 'togs' }, swap, fx), el('label', { class: 'row sel', style: 'margin-top:8px' }, el('span', { class: 'lbl' }, 'Look'), theme)),
+    el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Where the manual is unclear')),
+      el('p', { class: 'note' }, 'Table pitch: the manual contradicts itself on which byte range means "add" and which "subtract". The editor follows the worked example (C0–FF adds). If tables play pitches the wrong way, switch on ', el('b', {}, 'Swap table + / − encoding'), '.'),
+      el('p', { class: 'note' }, 'Dump size and negative values (transpose, detune) are learned from the first patch you receive from the unit, so receive one before sending dumps for the most reliable result.'),
+      el('p', { class: 'note', id: 'learned' })),
+    el('section', { class: 'mod', style: 'grid-column:1/-1' }, el('header', {}, el('h3', {}, 'MIDI monitor')), el('pre', { class: 'mon', id: 'mon' })));
+}
+function showLearned() { const l = $('#learned'); if (l) l.textContent = `Current: size offset ${cfg.sizeAdj}, negative numbers stored as ${cfg.signed8 ? '8-bit' : '7-bit'}.`; }
+
+/* ---------- tables ---------- */
+const TABLE_PRESETS = {
+  'Kick drum': { sp: 1, steps: [[8, 'F', 60], [4, 'F', 40], [1, 'F', 34], [1, 'F', 30], [1, 'F', 27], [1, 'F', 24], [1, 'F', 21]] },
+  'Snare': { sp: 1, steps: [[8, 'F', 76], [4, 'F', 44], [8, 'F', 72], [4, 'F', 40], [8, 'F', 70], [8, 'F', 68]] },
+  'Closed hat': { sp: 1, steps: [[8, 'F', 80], [8, 'F', 79], [0, 'F', 0]] },
+  'Noise click attack': { sp: 1, steps: [[8, 'F', 70], [9, '+', 0]] },
+  'Hubbard lead attack': { sp: 2, steps: [[8, 'F', 80], [9, '+', 12], [9, '+', 0]] },
+  'Octave loop': { sp: 3, loop: 0, steps: [[9, '+', 0], [9, '+', 12]] },
+  'Major chord arp': { sp: 2, loop: 0, steps: [[9, '+', 0], [9, '+', 4], [9, '+', 7]] },
+  'Minor chord arp': { sp: 2, loop: 0, steps: [[9, '+', 0], [9, '+', 3], [9, '+', 7]] },
+  'Sync sweep': { sp: 2, steps: [[9, '+', 0], [2, '+', 0, 0, 1], [2, '+', 12, 0, 1], [2, '+', 24, 0, 1]] },
+};
+function applyTablePreset(o, name, pt = patch) {
+  const pr = TABLE_PRESETS[name]; if (!pr) return;
+  pt.tables[o] = { steps: pr.steps.map(([w, m, n, r, s]) => ({ w, m, n, r: r || 0, s: s || 0 })), term: pr.loop != null ? { type: 'loop', lp: pr.loop } : { type: 'end', lp: 0 } };
+  setVal(pt, PK[`o${o}_tbl`], pr.sp);
+}
+let tableSendT = [0, 0, 0];
+function tableChanged(o, rerender) {
+  if (rerender) renderTables();
+  if (cfg.live) { clearTimeout(tableSendT[o]); tableSendT[o] = setTimeout(() => sendItems(tableMsgs(patch, o)), 60); }
+  saveSoon();
+}
+function renderTables() {
+  const host = $('#tableCols'); if (!host) return;
+  host.innerHTML = ''; reg.tables = {};
+  for (let o = 0; o < 3; o++) host.append(tableCard(o));
+  reg.tables && Object.values(reg.tables).forEach(fns => fns.forEach(f => f()));
+}
+function tableCard(o) {
+  const t = patch.tables[o];
+  const preset = el('select', { 'aria-label': 'Load a table preset' }, el('option', { value: '' }, 'Preset…'), ...Object.keys(TABLE_PRESETS).map(n => el('option', { value: n }, n)));
+  preset.addEventListener('change', () => { if (!preset.value) return; pushUndo(); applyTablePreset(o, preset.value); refreshKey(`o${o}_tbl`); if (cfg.live) sendItems(paramMsgs(patch, PK[`o${o}_tbl`])); lcd(`T${o + 1} ${preset.value}`); tableChanged(o, true); });
+  const steps = el('div', { class: 'steps' });
+  t.steps.forEach((st, i) => steps.append(stepRow(o, i, st)));
+  // terminator
+  const termSel = el('select', { 'aria-label': 'End of table' }, el('option', { value: 'end' }, 'End'), el('option', { value: 'loop' }, 'Loop to'));
+  termSel.value = t.term.type;
+  const lpSel = el('select', { 'aria-label': 'Loop to step' }, ...t.steps.map((_, i) => el('option', { value: i }, String(i).padStart(2, '0'))));
+  lpSel.value = Math.min(t.term.lp, Math.max(0, t.steps.length - 1)); lpSel.hidden = t.term.type !== 'loop';
+  termSel.addEventListener('change', () => { if (termSel.value === 'loop' && !t.steps.length) { termSel.value = 'end'; toast('Add a step before looping'); return; } t.term.type = termSel.value; lpSel.hidden = t.term.type !== 'loop'; tableChanged(o); });
+  lpSel.addEventListener('change', () => { t.term.lp = +lpSel.value; tableChanged(o); });
+  steps.append(el('div', { class: 'step' }, el('span', { class: 'ix' }, String(t.steps.length).padStart(2, '0')), termSel, lpSel));
+  const add = el('button', { class: 'btn small', disabled: t.steps.length >= 31 ? 'disabled' : false }, 'Add step');
+  add.addEventListener('click', () => { pushUndo(); const last = t.steps[t.steps.length - 1]; t.steps.push(last ? { ...last } : { w: 9, r: 0, s: 0, m: '+', n: 0 }); tableChanged(o, true); });
+  const clr = el('button', { class: 'btn small' }, 'Clear');
+  clr.addEventListener('click', () => { pushUndo(); patch.tables[o] = mkTable(); tableChanged(o, true); });
+  return el('section', { class: 'mod' }, el('header', {}, el('h3', {}, `Osc ${o + 1} table`), preset, add, clr),
+    control(`o${o}_tbl`, 'tables'),
+    el('div', { class: 'step note', 'aria-hidden': 'true' }, el('span', {}, '#'), el('span', {}, 'Wave'), el('span', { title: 'Ring mod' }, 'R'), el('span', { title: 'Hard sync' }, 'S'), el('span', {}, 'Mode'), el('span', {}, 'Note'), el('span', {}, '')),
+    steps);
+}
+function stepRow(o, i, st) {
+  const t = patch.tables[o];
+  const w = el('select', { 'aria-label': `Step ${i} waveform` }, ...TWAVES.map(([v, l]) => el('option', { value: v }, l))); w.value = st.w;
+  w.addEventListener('change', () => { st.w = +w.value; tableChanged(o); });
+  const mk = (lab, key, title) => { const b = el('button', { class: 'mini' + (st[key] ? ' on' : ''), type: 'button', title, 'aria-pressed': !!st[key] }, lab); b.addEventListener('click', () => { st[key] = st[key] ? 0 : 1; b.classList.toggle('on', !!st[key]); b.setAttribute('aria-pressed', !!st[key]); tableChanged(o); }); return b; };
+  const mode = el('select', { 'aria-label': `Step ${i} pitch mode`, title: 'F = fixed note, + / − = semitones from the played key' }, el('option', { value: 'F' }, 'F'), el('option', { value: '+' }, '+'), el('option', { value: '-' }, '−')); mode.value = st.m;
+  const n = el('input', { type: 'number', min: 0, max: st.m === 'F' ? 81 : 47, value: st.n, 'aria-label': `Step ${i} note` });
+  const nn = el('span', { class: 'nn' }, st.m === 'F' ? noteName(st.n) : (st.m === '+' ? '+' : '−') + st.n + ' st');
+  const upd = () => { nn.textContent = st.m === 'F' ? noteName(st.n) : (st.m === '+' ? '+' : '−') + st.n + ' st'; n.max = st.m === 'F' ? 81 : 47; };
+  mode.addEventListener('change', () => { st.m = mode.value; st.n = Math.min(st.n, st.m === 'F' ? 81 : 47); n.value = st.n; upd(); tableChanged(o); });
+  n.addEventListener('input', () => { st.n = Math.max(0, Math.min(+n.max, +n.value || 0)); upd(); tableChanged(o); });
+  const del = el('button', { class: 'mini', title: 'Delete step', 'aria-label': `Delete step ${i}` }, '×');
+  del.addEventListener('click', () => { pushUndo(); t.steps.splice(i, 1); if (t.term.lp >= t.steps.length) t.term.lp = Math.max(0, t.steps.length - 1); if (!t.steps.length) t.term.type = 'end'; tableChanged(o, true); });
+  return el('div', { class: 'step' }, el('span', { class: 'ix' }, String(i).padStart(2, '0')), w, mk('R', 'r', 'Ring mod on this step'), mk('S', 's', 'Hard sync on this step'), mode, n, nn, del);
+}
+
+/* ---------- templates ---------- */
+function initPatch(pt) {
+  pt.name = 'Init Saw'; pt.bytes.fill(0); pt.tables = [mkTable(), mkTable(), mkTable()];
+  const S = (k, v) => setVal(pt, PK[k], v);
+  S('o0_on', 1); S('o0_flt', 1);
+  for (let o = 0; o < 3; o++) { S(`o${o}_wave`, 2); S(`o${o}_pb`, 2); S(`o${o}_a`, 0); S(`o${o}_d`, 9); S(`o${o}_s`, 12); S(`o${o}_r`, 6); S(`o${o}_pws`, 48); }
+  S('ftype', 1); S('cut', 127); S('fatt', 0); S('fdec', 60); S('fsus', 100); S('frel', 30);
+  S('speed', 100); S('hcut', 2);
+  for (let l = 0; l < 4; l++) { S(`l${l}_speed`, 40); S(`l${l}_depth`, 100); }
+  for (let n = 0; n < 4; n++) S(`dc${n}lu`, 127);
+  return pt;
+}
+const TEMPLATES = {
+  'Init saw': pt => {},
+  'PWM lead': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'PWM Lead';
+    S('o0_wave', 4); S('o0_pws', 16); S('o0_pwa', 3); S('o0_spwm', 1); S('o1_on', 1); S('o1_flt', 1); S('o1_wave', 4); S('o1_pws', 40); S('o1_pwa', 2); S('o1_det', 10);
+    S('cut', 85); S('res', 6); S('o0_vibd', 6); S('o1_vibd', 6); S('l0_speed', 18); S('l0_depth', 127); S('l0_fade', 40); S('l0_sync', 1);
+    for (const o of [0, 1]) { S(`o${o}_a`, 1); S(`o${o}_r`, 7); } },
+  'Sync lead': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Sync Lead';
+    S('o0_wave', 1); S('o0_a', 0); S('o0_d', 0); S('o0_s', 0); S('o0_flt', 0);
+    S('o1_on', 1); S('o1_flt', 1); S('o1_wave', 2); S('o1_sync', 1); S('o1_trn', 12); S('o1_vibl', 1); S('o1_vibd', 40); S('o1_vibw', 30);
+    S('l1_type', 1); S('l1_speed', 60); S('l1_depth', 127); S('l1_sync', 1); S('cut', 110); },
+  'Ring mod bell': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Ring Bell';
+    S('o0_wave', 1); S('o1_on', 1); S('o1_wave', 1); S('o1_ring', 1); S('o1_trn', 19); S('o1_flt', 1);
+    for (const o of [0, 1]) { S(`o${o}_a`, 0); S(`o${o}_d`, 10); S(`o${o}_s`, 0); S(`o${o}_r`, 10); } },
+  'Acid bass': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Acid Bass';
+    S('o0_trn', -12); S('o0_s', 12); S('o0_r', 3); S('o0_port', 20); S('legato', 1);
+    S('cut', 18); S('res', 13); S('fenv', 95); S('fatt', 0); S('fdec', 45); S('fsus', 0); S('frel', 20); S('fsync', 1); },
+  'Poly pad': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Poly Pad';
+    S('poly', 1); S('o0_wave', 4); S('o0_pws', 20); S('o0_pwa', 1); S('o0_a', 9); S('o0_d', 10); S('o0_s', 11); S('o0_r', 10);
+    S('cut', 70); S('res', 5); S('l0_speed', 90); S('l0_depth', 60); S('flfo', 0); S('flfod', 30); },
+  'Kick drum (table)': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Kick';
+    S('o0_wave', 1); S('o0_d', 8); S('o0_s', 0); S('o0_r', 8); S('o0_flt', 0); applyTablePreset(0, 'Kick drum', pt); },
+  'Snare (table)': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Snare';
+    S('o0_wave', 8); S('o0_d', 8); S('o0_s', 0); S('o0_r', 8); S('o0_flt', 0); applyTablePreset(0, 'Snare', pt); },
+  'Hubbard lead (table)': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Hubbard Ld';
+    S('o0_wave', 4); S('o0_pws', 30); S('o0_pwa', 4); S('o0_spwm', 1); S('o0_vibd', 8); S('l0_fade', 60); S('l0_speed', 20); applyTablePreset(0, 'Hubbard lead attack', pt); },
+  'Chord arp (table)': pt => { const S = (k, v) => setVal(pt, PK[k], v); pt.name = 'Chord Arp';
+    S('o0_wave', 4); S('o0_pws', 32); applyTablePreset(0, 'Major chord arp', pt); },
+};
+function loadTemplate(name) {
+  const ui = busyStart(`Loading ${name}`);
+  pushUndo(); patch = initPatch(newPatch()); TEMPLATES[name](patch);
+  refreshAll(); if (cfg.live) sendItems(fullPatchMsgs(patch));
+  saveSoon(); ui.done('Ready');
+}
+
+/* ---------- library ---------- */
+let bankT = 0; const renderBankSoon = () => { clearTimeout(bankT); bankT = setTimeout(renderBank, 120); };
+function renderBank() {
+  const host = $('#bank'); host.innerHTML = '';
+  bank.forEach((p, i) => {
+    const b = el('button', { class: 'slot' + (p ? '' : ' empty') + (i === selSlot ? ' sel' : ''), type: 'button' }, el('small', {}, 'P' + String(i).padStart(2, '0')), p ? (p.name || 'Untitled') : '---');
+    b.addEventListener('click', () => { selSlot = i; renderBank(); });
+    b.addEventListener('dblclick', () => editSlot());
+    host.append(b);
+  });
+  showLearned();
+}
+function editSlot() { const p = bank[selSlot]; if (!p) { toast('That slot is empty'); return; } const ui = busyStart(`Loading “${p.name}”`); pushUndo(); patch = clonePatch(p); refreshAll(); if (cfg.live) sendItems(fullPatchMsgs(patch)); saveSoon(); ui.done('Ready'); }
+function download(bytes, name) {
+  const a = el('a', { href: URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' })), download: name });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const fileName = s => (s || 'patch').trim().replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-') || 'patch';
+function bankMessages() { return [clearMsg(), ...bank.map(p => p ? buildDump(p) : skipMsg())]; }
+function loadFile(file) {
+  const fr = new FileReader(), ui = busyStart(`Opening ${file.name}`);
+  fr.onerror = () => ui.done('Could not read that file');
+  fr.onload = () => {
+    const msgs = splitSysex(new Uint8Array(fr.result)).filter(isSid);
+    const dumps = msgs.filter(m => m[6] === 0x02);
+    if (!dumps.length) { ui.done('No SidStation patches in that file'); return; }
+    const isBank = msgs.some(m => m[6] === 0x01) || msgs.filter(m => m[6] === 0x02 || m[6] === 0x03).length > 1;
+    if (isBank) {
+      bank = new Array(100).fill(null); let pos = 0;
+      msgs.forEach(m => { if (m[6] === 0x02 && pos < 100) { const r = parseDump(m); if (r) bank[pos] = r.pt; pos++; } else if (m[6] === 0x03) pos++; });
+      renderBank(); selectTab('bank'); ui.done(`Opened ${dumps.length} patches`);
+    } else {
+      pushUndo(); patch = parseDump(dumps[0]).pt; refreshAll();
+      if (cfg.live) sendItems(fullPatchMsgs(patch));
+      ui.done(`Opened “${patch.name}”`);
+    }
+    saveSoon();
+  };
+  fr.readAsArrayBuffer(file);
+}
+
+/* ---------- keyboard & controllers ---------- */
+let oct = 3; const held = new Set();
+function noteOn(n) { if (held.has(n)) return; held.add(n); sendShort([0x90 | cfg.ch, n, +$('#vel').value]); markKey(n, true); }
+function noteOff(n) { if (!held.has(n)) return; held.delete(n); sendShort([0x80 | cfg.ch, n, 0]); markKey(n, false); }
+function markKey(n, on) { const k = document.querySelector(`[data-note="${n}"]`); if (k) k.classList.toggle('down', on); }
+function buildKeyboard() {
+  const host = $('#kbd'); host.innerHTML = ''; [...held].forEach(noteOff);
+  const base = 12 * (oct + 1), whites = [0, 2, 4, 5, 7, 9, 11], blacks = { 1: 0, 3: 1, 6: 3, 8: 4, 10: 5 };
+  const nW = 15; const wPct = 100 / nW;
+  for (let i = 0; i < nW; i++) {
+    const semi = 12 * Math.floor(i / 7) + whites[i % 7], n = base + semi;
+    host.append(el('div', { class: 'kw', 'data-note': n }, (i % 7 === 0) ? el('span', {}, 'C' + (oct + Math.floor(i / 7))) : null));
+  }
+  for (let oc = 0; oc < 2; oc++) for (const [semi, wi] of Object.entries(blacks)) {
+    const n = base + 12 * oc + +semi, left = (oc * 7 + wi + 1) * wPct - wPct * 0.3;
+    host.append(el('div', { class: 'kb', 'data-note': n, style: `left:${left}%;width:${wPct * 0.6}%` }));
+  }
+  $('#octLbl').textContent = 'C' + oct;
+}
+function bindKeyboard() {
+  const kbd = $('#kbd'); let down = null;
+  const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t?.closest('[data-note]'); };
+  kbd.addEventListener('pointerdown', e => { const k = at(e); if (!k) return; kbd.setPointerCapture(e.pointerId); down = +k.dataset.note; noteOn(down); });
+  kbd.addEventListener('pointermove', e => { if (down == null) return; const k = at(e); const n = k ? +k.dataset.note : null; if (n !== down) { noteOff(down); down = n; if (n != null) noteOn(n); } });
+  const up = () => { if (down != null) noteOff(down); down = null; };
+  kbd.addEventListener('pointerup', up); kbd.addEventListener('pointercancel', up);
+  const map = 'awsedftgyhujk';
+  const typing = () => /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName) && document.activeElement.type !== 'range';
+  window.addEventListener('keydown', e => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing()) return;
+    if (/^[1-7]$/.test(e.key)) { const b = document.querySelectorAll('nav.tabs button')[+e.key - 1]; if (b) selectTab(b.dataset.tab); return; }
+    const i = map.indexOf(e.key.toLowerCase()); if (i >= 0) { noteOn(12 * (oct + 1) + i); e.preventDefault(); }
+    if (e.key === 'z') { oct = Math.max(0, oct - 1); buildKeyboard(); } if (e.key === 'x') { oct = Math.min(7, oct + 1); buildKeyboard(); }
+  });
+  window.addEventListener('keyup', e => { const i = map.indexOf(e.key.toLowerCase()); if (i >= 0) noteOff(12 * (oct + 1) + i); });
+  window.addEventListener('blur', () => [...held].forEach(noteOff));
+  $('#octDn').onclick = () => { oct = Math.max(0, oct - 1); buildKeyboard(); saveSoon(); };
+  $('#octUp').onclick = () => { oct = Math.min(7, oct + 1); buildKeyboard(); saveSoon(); };
+  const pb = $('#pbend');
+  pb.addEventListener('input', () => { const v = +pb.value + 8192; sendShort([0xE0 | cfg.ch, v & 0x7F, (v >> 7) & 0x7F]); });
+  const pbReset = () => { pb.value = 0; sendShort([0xE0 | cfg.ch, 0, 0x40]); };
+  pb.addEventListener('pointerup', pbReset); pb.addEventListener('change', pbReset);
+  $('#modw').addEventListener('input', e => sendShort([0xB0 | cfg.ch, 1, +e.target.value]));
+  $('#panic').onclick = () => { held.clear(); document.querySelectorAll('.down').forEach(k => k.classList.remove('down')); for (let n = 0; n < 128; n++) sendShort([0x80 | cfg.ch, n, 0]); toast('Sent note off to all keys'); };
+  const kn = $('#knobs');
+  [[16, 'Knob 1'], [17, 'Knob 2'], [18, 'Knob 3'], [19, 'Knob 4'], [20, 'CTRL1'], [21, 'CTRL2'], [22, 'CTRL3'], [23, 'CTRL4']].forEach(([cc, lab]) => {
+    const r = el('input', { type: 'range', min: 0, max: 127, value: 0, id: 'cc' + cc, 'aria-label': `${lab} (CC ${cc})` });
+    r.addEventListener('input', () => sendShort([0xB0 | cfg.ch, cc, +r.value]));
+    kn.append(el('label', { title: cc < 20 ? 'Front panel knob: controls the target set on the Patch & knobs tab' : 'Use as an LFO control source' }, `${lab} · CC${cc}`, r));
+  });
+}
+
+/* ---------- fit everything inside the screen ---------- */
+// Measures the tallest channel (tables excluded, they can grow) and scales the screen contents down just enough.
+function fitScreen() {
+  const wrap = $('.wrap'), g = $('#glass'); if (!wrap || !g) return;
+  if (innerWidth <= 820) { wrap.style.zoom = ''; wrap.style.height = ''; return; }
+  wrap.style.zoom = 1; const H = g.clientHeight; wrap.style.height = H + 'px';
+  const fixed = $('.unit').offsetHeight + $('.perf').offsetHeight;
+  const panels = [...document.querySelectorAll('.wrap > .panel')], was = panels.map(p => p.hidden);
+  let need = 0;
+  panels.forEach(p => {
+    if (p.id === 'tab-tables') return;
+    panels.forEach(q => q.hidden = q !== p);
+    p.style.flex = 'none'; need = Math.max(need, p.scrollHeight); p.style.flex = '';
+  });
+  panels.forEach((p, i) => p.hidden = was[i]);
+  const z = Math.max(0.72, Math.min(1, H / (fixed + need + 1)));
+  wrap.style.zoom = z; wrap.style.height = (H / z) + 'px';
+}
+let fitRaf = 0; const fitSoon = () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fitScreen); };
+/* ---------- wire up ---------- */
+let osdT = 0;
+function selectTab(name) {
+  const btns = [...document.querySelectorAll('nav.tabs button')];
+  btns.forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  const i = btns.findIndex(b => b.dataset.tab === name), osd = $('#osd');
+  if (osd && i >= 0) { osd.textContent = 'CH ' + String(i + 1).padStart(2, '0') + ' ' + btns[i].querySelector('.ch-lbl').textContent; osd.classList.add('show'); clearTimeout(osdT); osdT = setTimeout(() => osd.classList.remove('show'), 1400); }
+  $('#scroll')?.scrollTo({ top: 0 }); document.querySelectorAll('.panel').forEach(p => p.scrollTop = 0);
+  document.querySelectorAll('.panel').forEach(p => p.hidden = p.id !== 'tab-' + name);
+  if (name === 'setup') { const m = $('#mon'); if (m) m.textContent = monLines.join('\n'); showLearned(); }
+}
+function init() {
+  const saved = restore();
+  if (!saved) initPatch(patch);
+  wantIn = saved?.inName || ''; wantOut = saved?.outName || '';
+  buildOsc(); buildFilter(); buildLfo(); buildPatch(); buildSetup();
+  $('#chSel').value = cfg.ch; $('#chSel').onchange = e => { cfg.ch = +e.target.value; saveSoon(); };
+  Object.keys(TEMPLATES).forEach(n => $('#tpl').append(el('option', { value: n }, n)));
+  $('#tpl').onchange = e => { if (e.target.value) loadTemplate(e.target.value); e.target.value = ''; };
+  const live = $('#liveTog'); const setLive = () => { live.classList.toggle('on', cfg.live); live.setAttribute('aria-pressed', cfg.live); };
+  live.onclick = () => { cfg.live = !cfg.live; setLive(); saveSoon(); toast(cfg.live ? 'Live: edits go straight to the SidStation' : 'Live off: edit here, then press Send to edit buffer'); }; setLive();
+  $('#pname').oninput = e => { patch.name = e.target.value.replace(/[^\x20-\x7E]/g, ''); lcd(); if (cfg.live) sendItems(nameMsgs(patch)); saveSoon(); };
+  $('#pname').onfocus = () => pushUndo();
+  $('#audition').onclick = () => { if (!outPort) return toast('Connect MIDI and pick an output first'); const ui = busyStart('Sending to edit buffer'); sendItems(fullPatchMsgs(patch)); ui.done('Patch in edit buffer'); };
+  $('#store').onclick = () => { if (!outPort) return toast('Connect MIDI and pick an output first'); const ui = busyStart(`Storing “${patch.name}”`, { sub: 'Selected slot, or the next free one' }); sendDump(buildDump(patch)); ui.done('Stored on SidStation'); };
+  $('#undo').onclick = undo;
+  window.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !/INPUT/.test(document.activeElement?.tagName)) { e.preventDefault(); undo(); } });
+  $('#loadSyx').onclick = () => $('#file').click();
+  $('#file').onchange = e => { const f = e.target.files[0]; if (f) loadFile(f); e.target.value = ''; };
+  $('#saveSyx').onclick = () => { const f = fileName(patch.name) + '.syx', ui = busyStart(`Saving ${f}`); download(buildDump(patch), f); ui.done('Saved'); };
+  $('#connect').onclick = connect;
+  $('#power').onclick = power;
+  $('#inSel').onchange = bindPorts; $('#outSel').onchange = bindPorts;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => selectTab(b.dataset.tab));
+  // library
+  $('#armRx').onclick = () => { if (!inPort) return toast('Connect MIDI and pick an input first'); if (!capture) armCapture(); };
+  $('#slotLoad').onclick = editSlot;
+  $('#slotPut').onclick = () => { bank[selSlot] = clonePatch(patch); renderBank(); saveSoon(); toast(`Put “${patch.name}” in P${String(selSlot).padStart(2, '0')}`); };
+  $('#slotClear').onclick = () => { bank[selSlot] = null; renderBank(); saveSoon(); };
+  $('#slotSend').onclick = () => { const p = bank[selSlot]; if (!p) return toast('That slot is empty'); if (!outPort) return toast('Connect MIDI and pick an output first'); const ui = busyStart(`Storing “${p.name}”`); sendDump(buildDump(p)); ui.done('Stored on SidStation'); };
+  $('#bankSave').onclick = () => { if (!bank.some(Boolean)) return toast('The library is empty'); const ui = busyStart('Saving sidstation-bank.syx'); download(bankMessages().flat(), 'sidstation-bank.syx'); ui.done('Saved'); };
+  $('#bankSend').onclick = () => {
+    if (!outPort) return toast('Connect MIDI and pick an output first');
+    if (!bank.some(Boolean)) return toast('The library is empty');
+    if (!confirm('This erases every patch in the SidStation and replaces them with this library. Back up first with Receive bank. Continue?')) return;
+    const ui = busyStart('Writing bank to SidStation', { sub: 'Leave the unit alone' }); bankMessages().forEach(m => sendDump(m)); ui.done('Bank written');
+  };
+  buildKeyboard(); bindKeyboard(); renderBank(); refreshAll(); lcd('Connect MIDI');
+  fitScreen(); addEventListener('resize', fitSoon); document.fonts?.ready.then(fitSoon);
+  if (navigator.requestMIDIAccess && navigator.permissions) {
+    navigator.permissions.query({ name: 'midi', sysex: true }).then(s => { if (s.state === 'granted') connect(); }).catch(() => {});
+  }
+}
+init();
+
+</script>
+</body>
+</html>
