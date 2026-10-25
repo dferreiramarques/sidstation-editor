@@ -362,6 +362,7 @@ pre.mon{max-height:150px;font-size:17px}
         <label class="namebox">Name <input id="pname" maxlength="10" spellcheck="false"></label>
         <select id="tpl" aria-label="Start from a template"><option value="">Start from…</option></select>
         <button class="tog on" id="liveTog" title="Send every change to the SidStation as you edit"><span class="led"></span>Live</button>
+        <button class="tog on" id="audTog" title="With Live on, play a test note on the SidStation with every edit so you hear the change without holding keys"><span class="led"></span>Auto note</button>
         <button class="btn" id="audition" title="Send the whole patch into the SidStation's edit buffer (not stored)">Send to edit buffer</button>
         <button class="btn" id="store" title="Send as a patch dump; the SidStation stores it in the selected slot, or the next free one">Store on SidStation</button>
         <button class="btn" id="undo" disabled>Undo</button>
@@ -447,7 +448,7 @@ pre.mon{max-height:150px;font-size:17px}
 <script>
 /* ===== SidStation core: patch model, SysEx encode/decode (from manual rev 2.2b, OS 1.1) ===== */
 const HDR = [0xF0, 0x00, 0x20, 0x3C, 0x01, 0x00];
-const cfg = { ch: 0, live: true, dpDelay: 6, dumpDelay: 150, swapPitch: false, signed8: false, sizeAdj: 0 };
+const cfg = { ch: 0, live: true, autoAud: true, audNote: 60, dpDelay: 6, dumpDelay: 150, swapPitch: false, signed8: false, sizeAdj: 0 };
 
 const NOTE = ['C-','C#','D-','D#','E-','F-','F#','G-','G#','A-','A#','B-'];
 const noteName = n => NOTE[((n % 12) + 12) % 12] + Math.floor(n / 12);   // manual: index 45 = A-3
@@ -485,7 +486,7 @@ S('poly', 'patch', 'Voice mode', 22, 1, 3, [[0,'Single (3 layers, mono)'],[1,'Po
 B('legato', 'patch', 'Legato portamento', 22, 5);
 B('reinit', 'patch', 'Retrigger every note', 25, 6);
 R('speed', 'patch', 'Update speed', 34, 50, 200, { fmt: v => v + ' Hz', noRand: 1 });
-R('hcut', 'patch', 'Hard cut', 35, 0, 15, { noRand: 1 });
+R('hcut', 'patch', 'Hard cut', 35, 0, 15, { mask: 0x0F, noRand: 1 });
 for (let n = 0; n < 4; n++) {
   R(`dc${n}`, 'dc', `Knob ${n+1} target`, 10 + 3*n, 0, 96, { fmt: v => v ? '#' + v : 'None', noRand: 1 });
   R(`dc${n}ld`, 'dc', 'Lowest value', 11 + 3*n, 0, 127, { noRand: 1 });
@@ -518,20 +519,20 @@ for (let o = 0; o < 3; o++) {
   R(k('trn'), s, 'Transpose', b+3, -24, 24, { addr: a+3, signed: 1, fmt: v => (v > 0 ? '+' : '') + v + ' st', step: 1 });
   R(k('det'), s, 'Detune', b+4, -64, 63, { addr: a+4, signed: 1, fmt: v => (v > 0 ? '+' : '') + v });
   R(k('pb'), s, 'Bend range', b+5, 0, 24, { addr: a+5, fmt: v => '±' + v, noRand: 1 });
-  R(k('a'), s, 'Attack', b+6, 0, 15, { addr: a+6, fmt: v => ATK[v] });
-  R(k('d'), s, 'Decay', b+7, 0, 15, { addr: a+7, fmt: v => DEC[v] });
-  R(k('s'), s, 'Sustain', b+8, 0, 15, { addr: a+8 });
-  R(k('r'), s, 'Release', b+9, 0, 15, { addr: a+9, fmt: v => DEC[v] });
+  R(k('a'), s, 'Attack', b+6, 0, 15, { addr: a+6, mask: 0x0F, fmt: v => ATK[v] });
+  R(k('d'), s, 'Decay', b+7, 0, 15, { addr: a+7, mask: 0x0F, fmt: v => DEC[v] });
+  R(k('s'), s, 'Sustain', b+8, 0, 15, { addr: a+8, mask: 0x0F });
+  R(k('r'), s, 'Release', b+9, 0, 15, { addr: a+9, mask: 0x0F, fmt: v => DEC[v] });
   R(k('dly'), s, 'Delay', b+10, 0, 127, { addr: a+10, fmt: off0, noRand: 1 });
   R(k('pws'), s, 'PW start', b+11, 0, 127, { addr: a+11 });
   R(k('pwa'), s, 'PW sweep', b+12, 0, 127, { addr: a+12, fmt: off0 });
-  S(k('pwl'), s, 'PW LFO', b+13, 0xFF, 0, LFOSEL, { addr: a+13 });
+  S(k('pwl'), s, 'PW LFO', b+13, 0x03, 0, LFOSEL, { addr: a+13 });
   R(k('pwd'), s, 'PW depth', b+14, 0, 127, { addr: a+14 });
   S(k('wave'), s, 'Waveform', b+15, 0x0F, 4, WAVES, { addr: a+15 });
   B(k('sync'), s, 'Hard sync', b+15, 1, { addr: a+15, cc: [40,56,78][o], help: 'Locks this oscillator to the previous one (osc 2 to 1, 3 to 2, 1 to 3). Best on triangle, with transpose or vibrato on this oscillator.' });
   B(k('ring'), s, 'Ring mod', b+15, 2, { addr: a+15, cc: [41,57,79][o], help: 'Ring-modulates with the previous oscillator (osc 2 with 1, 3 with 2, 1 with 3). Best on triangle.' });
   R(k('port'), s, 'Portamento', b+16, 0, 99, { addr: a+16, fmt: off0 });
-  S(k('vibl'), s, 'Vib LFO', b+17, 0xFF, 0, LFOSEL, { addr: a+17 });
+  S(k('vibl'), s, 'Vib LFO', b+17, 0x03, 0, LFOSEL, { addr: a+17 });
   R(k('vibd'), s, 'Vib depth', b+18, 0, 127, { addr: a+18 });
   R(k('vibw'), s, 'Wheel adds', b+19, 0, 127, { addr: a+19 });
   R(k('tbl'), s, 'Table speed', b+20, 0, 127, { addr: a+20, fmt: off0, noRand: 1 });
@@ -549,9 +550,9 @@ for (let l = 0; l < 4; l++) {
   R(k('speed'), s, 'Speed', b+2, 0, 127, { addr: a+2, help: 'Higher numbers are slower' });
   R(k('sh'), s, 'Sample & hold', b+3, 0, 127, { addr: a+3, fmt: off0 });
   R(k('depth'), s, 'Depth', b+4, 0, 127, { addr: a+4 });
-  S(k('add'), s, 'Add LFO', b+5, 0xFF, 0, LFOSEL, { addr: a+5 });
+  S(k('add'), s, 'Add LFO', b+5, 0x03, 0, LFOSEL, { addr: a+5 });
   R(k('lace'), s, 'Lace speed', b+6, 0, 127, { addr: a+6, fmt: off0 });
-  S(k('lacew'), s, 'Lace with', b+7, 0xFF, 0, LACEW, { addr: a+7 });
+  S(k('lacew'), s, 'Lace with', b+7, 0x07, 0, LACEW, { addr: a+7 });
   R(k('addd'), s, 'Add depth', b+8, 0, 127, { addr: a+8, fmt: off0 });
   R(k('ctrlv'), s, 'Control amount', b+9, 0, 127, { addr: a+9, noRand: 1 });
   R(k('fade'), s, 'Fade in', b+10, 0, 127, { addr: a+10, fmt: off0 });
@@ -656,6 +657,11 @@ const isSid = m => m.length > 6 && m[0] === 0xF0 && m[1] === 0x00 && m[2] === 0x
 function paramMsgs(pt, p) {
   if (p.cc) return [{ k: 'cc' + p.cc, cc: [p.cc, getVal(pt, p) ? 127 : 0] }];
   const raw = pt.bytes[p.idx];
+  // Osc -> filter routing: one documented sequence Programming the three bits at once (00 18 07 00)
+  if (p.key === 'o0_flt' || p.key === 'o1_flt' || p.key === 'o2_flt') {
+    const v = (getVal(pt, PK.o0_flt) ? 1 : 0) | (getVal(pt, PK.o1_flt) ? 2 : 0) | (getVal(pt, PK.o2_flt) ? 4 : 0);
+    return [{ k: '18:7:0', m: dpMsg(24, 0x07, 0, v) }];
+  }
   if (p.mask === 0xFF) {
     const out = [{ k: `${p.addr}:7f:0`, m: dpMsg(p.addr, 0x7F, 0, raw & 0x7F) }];
     if (p.max > 127 || (p.signed && cfg.signed8)) out.push({ k: `${p.addr}:1:7`, m: dpMsg(p.addr, 1, 7, (raw >> 7) & 1) });
@@ -772,6 +778,18 @@ function pump() {
 }
 function sendItems(items) { if (!outPort) return; items.forEach(it => enqueue(it, cfg.dpDelay)); }
 function sendDump(msg) { if (!outPort) return; enqueue({ k: 'dump' + (dumpN++), m: msg }, cfg.dumpDelay); }
+
+/* ---------- test note (auto audition) ---------- */
+// Live edits are only audible while the SidStation is playing a note, so every change also
+// triggers a short test note: held while you keep dragging, retrigged for discrete changes.
+let audOn = false, audT = 0;
+function endAud() { if (!audOn) return; audOn = false; clearTimeout(audT); sendShort([0x80 | cfg.ch, cfg.audNote, 0]); }
+function audition(force) {
+  if (!cfg.live || !cfg.autoAud || !outPort || held.size) return;
+  if (audOn && force) sendShort([0x80 | cfg.ch, cfg.audNote, 0]);   // fresh note so envelopes/tables play from the start
+  if (!audOn || force) { sendShort([0x90 | cfg.ch, cfg.audNote, +$('#vel').value]); audOn = true; }
+  clearTimeout(audT); audT = setTimeout(endAud, 350);
+}
 
 /* ---------- loading overlay (C64 raster bars) ---------- */
 const C64PAL = ['#000000','#ffffff','#880000','#aaffee','#cc44cc','#00cc55','#0000aa','#eeee77','#dd8855','#664400','#ff7777','#333333','#777777','#aaff66','#0088ff','#bbbbbb'];
@@ -914,7 +932,7 @@ function undo() {
   const p = undoStack.pop(); if (!p) return;
   patch = p; refreshAll(); $('#undo').disabled = !undoStack.length;
   if (cfg.live) sendItems(fullPatchMsgs(patch));
-  toast('Undone'); saveSoon();
+  audition(true); toast('Undone'); saveSoon();
 }
 function change(p, v, fromInput) {
   v = setVal(patch, p, v);
@@ -922,7 +940,7 @@ function change(p, v, fromInput) {
   if (p.key === 'speed') refreshKey('hcut');
   if (/^o\d_[adsr]$/.test(p.key)) drawEnv(+p.key[1]);
   if (/^f(att|dec|sus|rel|env)$/.test(p.key)) drawFenv();
-  if (cfg.live) sendItems(paramMsgs(patch, p));
+  if (cfg.live) { sendItems(paramMsgs(patch, p)); audition(); }
   lcdParam(p, v); saveSoon();
 }
 function refreshKey(key, skipEl) {
@@ -989,7 +1007,7 @@ function randomize(sec, mode) {
   }
   if (sec === 'filter' && mode !== 'mutate') setVal(patch, PK.cut, rnd(30, 120));
   refreshAll();
-  if (cfg.live) sendItems(P.filter(p => p.sec === sec).flatMap(p => paramMsgs(patch, p)));
+  if (cfg.live) { sendItems(P.filter(p => p.sec === sec).flatMap(p => paramMsgs(patch, p))); audition(true); }
   lcd((mode === 'mutate' ? 'Mutated ' : 'Randomised ') + sec.replace(/osc(\d)/, (m, d) => 'osc ' + (+d + 1)).replace(/lfo(\d)/, (m, d) => 'LFO ' + (+d + 1)));
   saveSoon();
 }
@@ -1076,7 +1094,7 @@ function buildSetup() {
   $('#setupCols').append(
     el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Getting connected')),
       el('p', { class: 'note' }, 'Use Chrome or Edge on desktop and allow MIDI with SysEx when asked. Connect your interface\'s MIDI Out to the SidStation\'s MIDI In, and the SidStation\'s MIDI Out back to the interface (needed to receive dumps). Set Ch to the SidStation\'s base channel (System › MIDI › BaseCh).'),
-      el('p', { class: 'note' }, 'Live edits go into the patch you have selected on the unit, like turning its knobs. Nothing is kept until you store it: use the SidStation\'s own Store, or ', el('b', {}, 'Store on SidStation'), ' here. Stay on the unit\'s play screen while sending; the manual advises leaving it alone while it takes in SysEx.')),
+      el('p', { class: 'note' }, 'Live edits go into the patch you have selected on the unit, like turning its knobs. With ', el('b', {}, 'Auto note'), ' on, every edit also plays a short test note on the SidStation so you hear the change immediately: keep dragging and the note stays held, toggle a switch and the note replays. Hold a key on the on-screen keyboard instead if you rather audition yourself. Nothing is kept until you store it: use the SidStation\'s own Store, or ', el('b', {}, 'Store on SidStation'), '. Stay on the unit\'s play screen while sending; the manual advises leaving it alone while it takes in SysEx.')),
     el('section', { class: 'mod' }, el('header', {}, el('h3', {}, 'Timing and options')),
       num('Gap between live edits', 'dpDelay', 1, 60, 'ms'), num('Gap between patch dumps', 'dumpDelay', 40, 1000, 'ms — raise if the unit crashes during bank sends'),
       el('div', { class: 'togs' }, swap, fx), el('label', { class: 'row sel', style: 'margin-top:8px' }, el('span', { class: 'lbl' }, 'Look'), theme)),
@@ -1108,7 +1126,7 @@ function applyTablePreset(o, name, pt = patch) {
 let tableSendT = [0, 0, 0];
 function tableChanged(o, rerender) {
   if (rerender) renderTables();
-  if (cfg.live) { clearTimeout(tableSendT[o]); tableSendT[o] = setTimeout(() => sendItems(tableMsgs(patch, o)), 60); }
+  if (cfg.live) { clearTimeout(tableSendT[o]); tableSendT[o] = setTimeout(() => sendItems(tableMsgs(patch, o)), 60); audition(true); }
   saveSoon();
 }
 function renderTables() {
@@ -1200,7 +1218,7 @@ function loadTemplate(name) {
   const ui = busyStart(`Loading ${name}`);
   pushUndo(); patch = initPatch(newPatch()); TEMPLATES[name](patch);
   refreshAll(); if (cfg.live) sendItems(fullPatchMsgs(patch));
-  saveSoon(); ui.done('Ready');
+  saveSoon(); ui.done('Ready').then(audition);
 }
 
 /* ---------- library ---------- */
@@ -1215,7 +1233,7 @@ function renderBank() {
   });
   showLearned();
 }
-function editSlot() { const p = bank[selSlot]; if (!p) { toast('That slot is empty'); return; } const ui = busyStart(`Loading “${p.name}”`); pushUndo(); patch = clonePatch(p); refreshAll(); if (cfg.live) sendItems(fullPatchMsgs(patch)); saveSoon(); ui.done('Ready'); }
+function editSlot() { const p = bank[selSlot]; if (!p) { toast('That slot is empty'); return; } const ui = busyStart(`Loading “${p.name}”`); pushUndo(); patch = clonePatch(p); refreshAll(); if (cfg.live) sendItems(fullPatchMsgs(patch)); saveSoon(); ui.done('Ready').then(audition); }
 function download(bytes, name) {
   const a = el('a', { href: URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' })), download: name });
   document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -1237,7 +1255,7 @@ function loadFile(file) {
     } else {
       pushUndo(); patch = parseDump(dumps[0]).pt; refreshAll();
       if (cfg.live) sendItems(fullPatchMsgs(patch));
-      ui.done(`Opened “${patch.name}”`);
+      ui.done(`Opened “${patch.name}”`).then(audition);
     }
     saveSoon();
   };
@@ -1287,7 +1305,7 @@ function bindKeyboard() {
   const pbReset = () => { pb.value = 0; sendShort([0xE0 | cfg.ch, 0, 0x40]); };
   pb.addEventListener('pointerup', pbReset); pb.addEventListener('change', pbReset);
   $('#modw').addEventListener('input', e => sendShort([0xB0 | cfg.ch, 1, +e.target.value]));
-  $('#panic').onclick = () => { held.clear(); document.querySelectorAll('.down').forEach(k => k.classList.remove('down')); for (let n = 0; n < 128; n++) sendShort([0x80 | cfg.ch, n, 0]); toast('Sent note off to all keys'); };
+  $('#panic').onclick = () => { held.clear(); endAud(); document.querySelectorAll('.down').forEach(k => k.classList.remove('down')); for (let n = 0; n < 128; n++) sendShort([0x80 | cfg.ch, n, 0]); toast('Sent note off to all keys'); };
   const kn = $('#knobs');
   [[16, 'Knob 1'], [17, 'Knob 2'], [18, 'Knob 3'], [19, 'Knob 4'], [20, 'CTRL1'], [21, 'CTRL2'], [22, 'CTRL3'], [23, 'CTRL4']].forEach(([cc, lab]) => {
     const r = el('input', { type: 'range', min: 0, max: 127, value: 0, id: 'cc' + cc, 'aria-label': `${lab} (CC ${cc})` });
@@ -1335,10 +1353,12 @@ function init() {
   Object.keys(TEMPLATES).forEach(n => $('#tpl').append(el('option', { value: n }, n)));
   $('#tpl').onchange = e => { if (e.target.value) loadTemplate(e.target.value); e.target.value = ''; };
   const live = $('#liveTog'); const setLive = () => { live.classList.toggle('on', cfg.live); live.setAttribute('aria-pressed', cfg.live); };
-  live.onclick = () => { cfg.live = !cfg.live; setLive(); saveSoon(); toast(cfg.live ? 'Live: edits go straight to the SidStation' : 'Live off: edit here, then press Send to edit buffer'); }; setLive();
+  live.onclick = () => { cfg.live = !cfg.live; setLive(); if (!cfg.live) endAud(); saveSoon(); toast(cfg.live ? 'Live: edits go straight to the SidStation' : 'Live off: edit here, then press Send to edit buffer'); }; setLive();
+  const audTog = $('#audTog'); const setAud = () => { audTog.classList.toggle('on', cfg.autoAud); audTog.setAttribute('aria-pressed', cfg.autoAud); };
+  audTog.onclick = () => { cfg.autoAud = !cfg.autoAud; setAud(); if (!cfg.autoAud) endAud(); saveSoon(); toast(cfg.autoAud ? 'Auto note: every edit also plays a test note on the SidStation' : 'Auto note off: hold keys on the keyboard to audition'); }; setAud();
   $('#pname').oninput = e => { patch.name = e.target.value.replace(/[^\x20-\x7E]/g, ''); lcd(); if (cfg.live) sendItems(nameMsgs(patch)); saveSoon(); };
   $('#pname').onfocus = () => pushUndo();
-  $('#audition').onclick = () => { if (!outPort) return toast('Connect MIDI and pick an output first'); const ui = busyStart('Sending to edit buffer'); sendItems(fullPatchMsgs(patch)); ui.done('Patch in edit buffer'); };
+  $('#audition').onclick = async () => { if (!outPort) return toast('Connect MIDI and pick an output first'); const ui = busyStart('Sending to edit buffer'); sendItems(fullPatchMsgs(patch)); await ui.done('Patch in edit buffer'); audition(true); };
   $('#store').onclick = () => { if (!outPort) return toast('Connect MIDI and pick an output first'); const ui = busyStart(`Storing “${patch.name}”`, { sub: 'Selected slot, or the next free one' }); sendDump(buildDump(patch)); ui.done('Stored on SidStation'); };
   $('#undo').onclick = undo;
   window.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !/INPUT/.test(document.activeElement?.tagName)) { e.preventDefault(); undo(); } });
